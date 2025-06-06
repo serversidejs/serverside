@@ -7,17 +7,20 @@ function generateComponentCode(template: string, script: string, filePath: strin
   const tagName = `comp-${componentName.toLowerCase()}`;
 
 
-  let processedTemplate = template.replace(/\{\{\s*([^}]+)\s*\}\}/g, (match, expression) => {
-    const key = expression.trim();
-    return `<span data-bind="${key}"></span>`;
-  });
+  let processedTemplate = template;
 
   processedTemplate = processedTemplate.replace(/\s+:show=\{([^"]+)\}/g, ' data-show="$1"');
 
   // Convertimos el template procesado a la versión final con data-attributes
   processedTemplate = processedTemplate
     .replace(/\s+:if=\{([^"]+)\}/g, ' data-if="$1"')
-    .replace(/\s+:else/g, ' data-else');
+    .replace(/\s+:else/g, ' data-else')
+    .replace(/\s+:each=\{([^}]+)\s+in\s+([^}]+)\}/g, ' data-each="$1 in $2"');
+
+  processedTemplate = processedTemplate.replace(/\{\{\s*([^}]+)\s*\}\}/g, (match, expression) => {
+    const key = expression.trim();
+    return `<span data-bind="${key}"></span>`;
+  });
 
   
   return `

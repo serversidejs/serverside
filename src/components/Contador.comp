@@ -2,6 +2,7 @@
   // Simplemente exportamos las variables que queremos que sean reactivas.
   // El valor inicial se usa para el estado por defecto.
   this.$state.contador = 0;
+  this.$state.historial = [];
   let mensaje = "Observa cómo cambia el mensaje según el valor del contador: ";
   let interval;
 
@@ -13,6 +14,11 @@
     console.log('Componente montado y listo!');
     interval = setInterval(() => {
       this.$state.contador++;
+      // Guardamos el valor en el historial
+      this.$state.historial = [...this.$state.historial, {
+        valor: this.$state.contador,
+        timestamp: new Date().toLocaleTimeString()
+      }].slice(-5); // Mantenemos solo los últimos 5 valores
       console.log('MENSAJE', formatMessage());
     }, 1000);
   }
@@ -30,14 +36,23 @@
     <p>El valor actual es: <strong class="valor">{{ contador }}</strong></p>
     
     <div :if={contador > 5}>
-      <p class="alerta">¡El contador es mayor que 5!</p>
+      <p class="alerta">¡El contador es mayor que 5! {{ contador }}</p>
     </div>
     <div :else>
       <p class="normal">El contador es 5 o menor</p>
     </div>
 
     <div :show={contador > 10}>
-      <p class="alerta">¡El contador es mayor que 10!</p>
+      <p class="alerta">¡El contador es mayor que 10! {{ contador }}</p>
+    </div>
+
+    <div class="historial">
+      <h2>Historial de valores</h2>
+      <ul>
+        <li :each={item in historial}>
+          Valor: <strong>{{ item.valor }}</strong> - Hora: {{ item.timestamp }}
+        </li>
+      </ul>
     </div>
     
   </div>
@@ -65,6 +80,27 @@
       padding: 10px;
       background: #d1fae5;
       border-radius: 4px;
+    }
+    .historial {
+      margin-top: 20px;
+      padding: 15px;
+      background: white;
+      border-radius: 4px;
+    }
+    .historial h2 {
+      margin-top: 0;
+      color: #4b5563;
+    }
+    .historial ul {
+      list-style: none;
+      padding: 0;
+    }
+    .historial li {
+      padding: 8px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .historial li:last-child {
+      border-bottom: none;
     }
   </style>
 </template>
