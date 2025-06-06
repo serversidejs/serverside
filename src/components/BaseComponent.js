@@ -34,9 +34,9 @@ export class BaseComponent extends HTMLElement {
 
      this.#setupIfBindings();
 
-    // onMount es ahora el lugar donde el usuario define su estado inicial
-    if (this.onMount) {
-      this.onMount();
+    // loadS es ahora el lugar donde el usuario define su estado inicial
+    if (this.loadScript) {
+      this.loadScript();
     }
     this.render(); // Renderizado inicial
     this.#initialized = true;

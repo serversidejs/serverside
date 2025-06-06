@@ -4,7 +4,7 @@ import path from "path";
 
 function generateComponentCode(template: string, script: string, filePath: string) {
   const componentName = path.basename(filePath, '.comp');
-  const tagName = `mi-${componentName.toLowerCase()}`;
+  const tagName = `comp-${componentName.toLowerCase()}`;
 
 
   let processedTemplate = template.replace(/\{\{\s*([^}]+)\s*\}\}/g, (match, expression) => {
@@ -19,14 +19,14 @@ function generateComponentCode(template: string, script: string, filePath: strin
     .replace(/\s+:if=\{([^"]+)\}/g, ' data-if="$1"')
     .replace(/\s+:else/g, ' data-else');
 
-  // 3. Ensamblar la clase final. Es simple y predecible.
+  
   return `
     import { BaseComponent } from './BaseComponent.js';
 
     class ${componentName} extends BaseComponent {
       static template = \`${processedTemplate}\`;
 
-      onMount() {
+      loadScript() {
         // Todo el script del usuario va aquí.
         ${script}
       }
