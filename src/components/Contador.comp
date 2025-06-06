@@ -2,15 +2,48 @@
   // Simplemente exportamos las variables que queremos que sean reactivas.
   // El valor inicial se usa para el estado por defecto.
   export let contador = 0;
-  export let mensaje = "Hola Bun2!";
+  export let mensaje = "Observa cómo cambia el mensaje según el valor del contador";
 </script>
 
 <template>
-  <div>
+  <style>
+    .container {
+      padding: 20px;
+      border-radius: 8px;
+      background: #f5f5f5;
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+    .valor {
+      font-size: 2em;
+      color: #2563eb;
+    }
+    .alerta {
+      color: #dc2626;
+      font-weight: bold;
+      padding: 10px;
+      background: #fee2e2;
+      border-radius: 4px;
+    }
+    .normal {
+      color: #059669;
+      padding: 10px;
+      background: #d1fae5;
+      border-radius: 4px;
+    }
+  </style>
+
+  <div class="container">
     <h1>Contador Simple</h1>
-    <p>El valor actual es: <strong>{{ contador }}</strong></p>
-    <p>Mensaje: {{ mensaje }}</p>
-    test
+    <p>El valor actual es: <strong class="valor">{{ contador }}</strong></p>
+    
+    <div v-if="contador > 5">
+      <p class="alerta">¡El contador es mayor que 5!</p>
+    </div>
+    <div v-else>
+      <p class="normal">El contador es 5 o menor</p>
+    </div>
+
+    <p>{{ mensaje }}</p>
   </div>
 </template>
 
