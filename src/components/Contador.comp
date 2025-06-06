@@ -1,11 +1,40 @@
 <script>
   // Simplemente exportamos las variables que queremos que sean reactivas.
   // El valor inicial se usa para el estado por defecto.
-  export let contador = 0;
-  export let mensaje = "Observa cómo cambia el mensaje según el valor del contador";
+  this.$state.contador = 0;
+  let mensaje = "Observa cómo cambia el mensaje según el valor del contador: ";
+
+  const formatMessage = () => {
+    return `${mensaje} ${this.$state.contador}`
+  }
+  console.log('Contador', this.$state.contador)
+  console.log('MENSAJE', formatMessage())
+  
+  setInterval(() => {
+    this.$state.contador++
+    console.log('MENSAJE', formatMessage())
+
+  }, 1000);
 </script>
 
 <template>
+  <div class="container">
+    <h1>Contador Simple</h1>
+    <p>El valor actual es: <strong class="valor">{{ contador }}</strong></p>
+    
+    <div :if={contador > 5}>
+      <p class="alerta">¡El contador es mayor que 5!</p>
+    </div>
+    <div :else>
+      <p class="normal">El contador es 5 o menor</p>
+    </div>
+
+    <div :show={contador > 10}>
+      <p class="alerta">¡El contador es mayor que 10!</p>
+    </div>
+    
+  </div>
+
   <style>
     .container {
       padding: 20px;
@@ -31,19 +60,5 @@
       border-radius: 4px;
     }
   </style>
-
-  <div class="container">
-    <h1>Contador Simple</h1>
-    <p>El valor actual es: <strong class="valor">{{ contador }}</strong></p>
-    
-    <div v-if="contador > 5">
-      <p class="alerta">¡El contador es mayor que 5!</p>
-    </div>
-    <div v-else>
-      <p class="normal">El contador es 5 o menor</p>
-    </div>
-
-    <p>{{ mensaje }}</p>
-  </div>
 </template>
 
