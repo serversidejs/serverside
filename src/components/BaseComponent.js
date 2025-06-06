@@ -3,6 +3,7 @@
 export class BaseComponent extends HTMLElement {
   $state; // La declaramos para que TypeScript y los editores la conozcan
   #initialized = false;
+  #mounted = false;
 
   #textBindings = []; // Caché para nuestros nodos de texto reactivos
   #ifBindings = [];
@@ -29,17 +30,33 @@ export class BaseComponent extends HTMLElement {
   }
 
   connectedCallback() {
-     // 1. Buscamos y cacheamos los nodos de texto UNA SOLA VEZ.
-     this.#setupAndCacheBindings();
+    // 1. Buscamos y cacheamos los nodos de texto UNA SOLA VEZ.
+    this.#setupAndCacheBindings();
+    this.#setupIfBindings();
 
-     this.#setupIfBindings();
-
-    // loadS es ahora el lugar donde el usuario define su estado inicial
+    // loadScript es ahora el lugar donde el usuario define su estado inicial
     if (this.loadScript) {
       this.loadScript();
     }
+    
     this.render(); // Renderizado inicial
     this.#initialized = true;
+
+    // Esperamos a que todo el DOM esté listo antes de llamar a onMount
+    requestAnimationFrame(() => {
+      if (this.onMount && !this.#mounted) {
+        this.onMount();
+        this.#mounted = true;
+      }
+    });
+  }
+
+  disconnectedCallback() {
+    // Limpieza cuando el componente se desmonta
+    this.#mounted = false;
+    if (this.onDestroy) {
+      this.onDestroy();
+    }
   }
 
   #setupAndCacheBindings() {
@@ -62,34 +79,34 @@ export class BaseComponent extends HTMLElement {
 
   #setupIfBindings() {
     this.shadowRoot.querySelectorAll('[data-if]').forEach(ifEl => {
-        const condition = ifEl.dataset.if;
-        const anchor = document.createComment(`if-else anchor for: ${condition}`);
-        
-        // Guardamos la plantilla del if
-        ifEl.removeAttribute('data-if');
-        const ifTemplate = ifEl.cloneNode(true);
-        let elseTemplate = null;
+      const condition = ifEl.dataset.if;
+      const anchor = document.createComment(`if-else anchor for: ${condition}`);
+      
+      // Guardamos la plantilla del if
+      ifEl.removeAttribute('data-if');
+      const ifTemplate = ifEl.cloneNode(true);
+      let elseTemplate = null;
 
-        const elseEl = ifEl.nextElementSibling;
-        if (elseEl && elseEl.hasAttribute('data-else')) {
-            // ¡NUEVO! Si existe un v-else, guardamos también su plantilla...
-            elseEl.removeAttribute('data-else');
-            elseTemplate = elseEl.cloneNode(true);
-            // ...y lo eliminamos del DOM para que no quede huérfano.
-            elseEl.remove();
-        }
+      const elseEl = ifEl.nextElementSibling;
+      if (elseEl && elseEl.hasAttribute('data-else')) {
+        // ¡NUEVO! Si existe un v-else, guardamos también su plantilla...
+        elseEl.removeAttribute('data-else');
+        elseTemplate = elseEl.cloneNode(true);
+        // ...y lo eliminamos del DOM para que no quede huérfano.
+        elseEl.remove();
+      }
 
-        // Reemplazamos el elemento if original por el ancla.
-        ifEl.parentNode.replaceChild(anchor, ifEl);
-        
-        this.#ifBindings.push({
-            condition,
-            anchor,
-            ifTemplate,
-            elseTemplate, // Puede ser null
-            mountedBlock: null, // Puede ser 'if', 'else' o null
-            mountedElement: null
-        });
+      // Reemplazamos el elemento if original por el ancla.
+      ifEl.parentNode.replaceChild(anchor, ifEl);
+      
+      this.#ifBindings.push({
+        condition,
+        anchor,
+        ifTemplate,
+        elseTemplate, // Puede ser null
+        mountedBlock: null, // Puede ser 'if', 'else' o null
+        mountedElement: null
+      });
     });
   }
 
@@ -108,46 +125,46 @@ export class BaseComponent extends HTMLElement {
       // ¡NUEVO! Buscamos un v-else adyacente
       const elseEl = el.nextElementSibling;
       if (elseEl && elseEl.hasAttribute('data-else')) {
-          // Le aplicamos el estilo opuesto
-          elseEl.style.display = condition ? 'none' : '';
+        // Le aplicamos el estilo opuesto
+        elseEl.style.display = condition ? 'none' : '';
       }
     });
 
-  for (const binding of this.#ifBindings) {
-    const shouldShowIf = new Function('$state', `return !!($state.${binding.condition})`)(this.$state);
+    for (const binding of this.#ifBindings) {
+      const shouldShowIf = new Function('$state', `return !!($state.${binding.condition})`)(this.$state);
 
-    if (shouldShowIf) {
+      if (shouldShowIf) {
         // La condición del IF es verdadera
         if (binding.mountedBlock !== 'if') {
-            // Si hay algo montado (el bloque else), lo quitamos
-            binding.mountedElement?.remove();
+          // Si hay algo montado (el bloque else), lo quitamos
+          binding.mountedElement?.remove();
 
-            // Montamos el bloque IF
-            const clone = binding.ifTemplate.cloneNode(true);
-            binding.anchor.parentNode.insertBefore(clone, binding.anchor.nextSibling);
-            binding.mountedBlock = 'if';
-            binding.mountedElement = clone;
+          // Montamos el bloque IF
+          const clone = binding.ifTemplate.cloneNode(true);
+          binding.anchor.parentNode.insertBefore(clone, binding.anchor.nextSibling);
+          binding.mountedBlock = 'if';
+          binding.mountedElement = clone;
         }
-    } else {
+      } else {
         // La condición del IF es falsa
         if (binding.elseTemplate) {
-            // Y tenemos un bloque ELSE para mostrar
-            if (binding.mountedBlock !== 'else') {
-                binding.mountedElement?.remove();
-                const clone = binding.elseTemplate.cloneNode(true);
-                binding.anchor.parentNode.insertBefore(clone, binding.anchor.nextSibling);
-                binding.mountedBlock = 'else';
-                binding.mountedElement = clone;
-            }
+          // Y tenemos un bloque ELSE para mostrar
+          if (binding.mountedBlock !== 'else') {
+            binding.mountedElement?.remove();
+            const clone = binding.elseTemplate.cloneNode(true);
+            binding.anchor.parentNode.insertBefore(clone, binding.anchor.nextSibling);
+            binding.mountedBlock = 'else';
+            binding.mountedElement = clone;
+          }
         } else {
-            // No hay bloque ELSE, así que no mostramos nada
-            if (binding.mountedBlock) {
-                binding.mountedElement.remove();
-                binding.mountedBlock = null;
-                binding.mountedElement = null;
-            }
+          // No hay bloque ELSE, así que no mostramos nada
+          if (binding.mountedBlock) {
+            binding.mountedElement.remove();
+            binding.mountedBlock = null;
+            binding.mountedElement = null;
+          }
         }
+      }
     }
-  }
   }
 }

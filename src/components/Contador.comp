@@ -3,18 +3,25 @@
   // El valor inicial se usa para el estado por defecto.
   this.$state.contador = 0;
   let mensaje = "Observa cómo cambia el mensaje según el valor del contador: ";
+  let interval;
 
   const formatMessage = () => {
     return `${mensaje} ${this.$state.contador}`
   }
-  console.log('Contador', this.$state.contador)
-  console.log('MENSAJE', formatMessage())
-  
-  setInterval(() => {
-    this.$state.contador++
-    console.log('MENSAJE', formatMessage())
 
-  }, 1000);
+  this.onMount = () => {
+    console.log('Componente montado y listo!');
+    interval = setInterval(() => {
+      this.$state.contador++;
+      console.log('MENSAJE', formatMessage());
+    }, 1000);
+  }
+
+  this.onDestroy = () => {
+    if (interval) {
+      clearInterval(interval);
+    }
+  }
 </script>
 
 <template>
