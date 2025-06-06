@@ -1,0 +1,19 @@
+{
+  "name": "component-framework",
+  "module": "index.ts",
+  "type": "module",
+  "scripts": {
+    "dev": "bun run dev-server.ts",
+    "build": "bun build.js"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@types/chokidar": "^2.1.7",
+    "chokidar": "^4.0.3"
+  }
+}

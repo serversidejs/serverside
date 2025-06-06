@@ -1,0 +1,16 @@
+<script>
+  // Simplemente exportamos las variables que queremos que sean reactivas.
+  // El valor inicial se usa para el estado por defecto.
+  export let contador = 0;
+  export let mensaje = "Hola Bun2!";
+</script>
+
+<template>
+  <div>
+    <h1>Contador Simple</h1>
+    <p>El valor actual es: <strong>{{ contador }}</strong></p>
+    <p>Mensaje: {{ mensaje }}</p>
+    test
+  </div>
+</template>
+
