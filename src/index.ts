@@ -42,50 +42,50 @@ async function serveStatic(path: string): Promise<Response | null> {
 }
 
 // Definir rutas
-router.get('/', async (req) => {
+// router.get('/', async (req) => {
  
-  const data = {
-    user: {
-        name: 'Carlos',
-        email: 'carlos@example.com',
-        isAdmin: true,
-        role: 'admin',
-        permissions: {
-            canEdit: true
-        }
-    },
-    tasks: [
-        {
-            description: 'Preparar presentación',
-            priority: 'alta',
-            completed: false,
-            dueDate: '2025-06-15',
-            subTasks: [
-                { name: 'Investigar tema', done: true },
-                { name: 'Diseñar diapositivas', done: false }
-            ]
-        },
-        {
-            description: 'Revisar informe',
-            priority: 'media',
-            completed: true,
-            subTasks: null // Demostrar que no hay problema si no existe
-        },
-        {
-            description: 'Comprar víveres',
-            priority: 'baja',
-            completed: false,
-            dueDate: '2025-06-08'
-        }
-    ],
-    notifications: ['Nueva actualización disponible', 'Tu suscripción caduca pronto']
-    // notifications: [] // Prueba con array vacío para el 'else'
-};
+//   const data = {
+//     user: {
+//         name: 'Carlos',
+//         email: 'carlos@example.com',
+//         isAdmin: true,
+//         role: 'admin',
+//         permissions: {
+//             canEdit: true
+//         }
+//     },
+//     tasks: [
+//         {
+//             description: 'Preparar presentación',
+//             priority: 'alta',
+//             completed: false,
+//             dueDate: '2025-06-15',
+//             subTasks: [
+//                 { name: 'Investigar tema', done: true },
+//                 { name: 'Diseñar diapositivas', done: false }
+//             ]
+//         },
+//         {
+//             description: 'Revisar informe',
+//             priority: 'media',
+//             completed: true,
+//             subTasks: null // Demostrar que no hay problema si no existe
+//         },
+//         {
+//             description: 'Comprar víveres',
+//             priority: 'baja',
+//             completed: false,
+//             dueDate: '2025-06-08'
+//         }
+//     ],
+//     notifications: ['Nueva actualización disponible', 'Tu suscripción caduca pronto']
+//     // notifications: [] // Prueba con array vacío para el 'else'
+// };
 
   
 
-  return View.render('index', data);
-});
+//   return View.render('index', data);
+// });
 
 // Iniciar servidor
 Bun.serve({

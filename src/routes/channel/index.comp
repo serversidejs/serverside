@@ -1,0 +1,10 @@
+<script side="server">
+// Lógica del servidor aquí
+return {
+    title: "Acerca de Channel",
+    content: "Información de la empresa..."
+};
+</script>
+
+<h1>{title}</h1>
+<p>{content}</p>

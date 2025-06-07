@@ -1,0 +1,39 @@
+<script side="server">
+// Aquí podrías buscar el post en una base de datos usando params.slug
+const post = {
+    title: `Post: ${params.slug}`,
+    content: `Este es el contenido del post ${params.slug}`,
+    date: new Date().toLocaleDateString()
+};
+
+return {
+    post
+};
+</script>
+
+<article>
+    <h1>{post.title}</h1>
+    <div class="meta">
+        <span class="date">{post.date}</span>
+    </div>
+    <div class="content">
+        {post.content}
+    </div>
+</article>
+
+<style>
+    article {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .meta {
+        color: #666;
+        margin-bottom: 20px;
+    }
+
+    .content {
+        line-height: 1.6;
+    }
+</style> 

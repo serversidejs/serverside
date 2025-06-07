@@ -14,7 +14,7 @@ interface ViewData {
 }
 
 export class View {
-  private static viewsPath = join(__dirname, 'views');
+  private static viewsPath = join(__dirname, 'routes');
   private static layoutPath = join(__dirname, 'views/layouts/main.html');
   private static layout: string;
 

@@ -1,33 +1,49 @@
 <script side="server">
-// Procesar las tareas para añadir información adicional
-const processedTasks = tasks.map(task => ({
-    ...task,
-    priority: task.priority.toUpperCase(),
-    dueDate: task.dueDate ? new Date(task.dueDate).toLocaleDateString() : null
-}));
 
-// Filtrar notificaciones no leídas
-const unreadNotifications = notifications.filter(n => !n.read);
+    return {
+        user: {
+            name: 'Carlos',
+            email: 'carlos@example.com',
+            isAdmin: true,
+            role: 'admin',
+            permissions: {
+                canEdit: true
+            }
+        },
+        tasks: [
+            {
+                description: 'Preparar presentación',
+                priority: 'alta',
+                completed: false,
+                dueDate: '2025-06-15',
+                subTasks: [
+                    { name: 'Investigar tema', done: true },
+                    { name: 'Diseñar diapositivas', done: false }
+                ]
+            },
+            {
+                description: 'Revisar informe',
+                priority: 'media',
+                completed: true,
+                subTasks: null // Demostrar que no hay problema si no existe
+            },
+            {
+                description: 'Comprar víveres',
+                priority: 'baja',
+                completed: false,
+                dueDate: '2025-06-08'
+            }
+        ],
+        notifications: ['Nueva actualización disponible', 'Tu suscripción caduca pronto']
+        // notifications: [] // Prueba con array vacío para el 'else'
+    };
 
-// Retornar los datos procesados
-return {
-    tasks: processedTasks,
-    notifications: unreadNotifications,
-    // Podemos modificar o añadir datos al usuario
-    user: {
-        ...user,
-        isAdmin: user.role === 'admin',
-        permissions: {
-            canEdit: user.role === 'admin' || user.role === 'editor'
-        }
-    }
-};
 </script>
 
 <script>
     console.log('Hola desde el script');
-    const user = JSON.parse('{@json user}');
-    console.log('USER', user);
+    // const user = JSON.parse('{@json user}');
+    // console.log('USER', user);
 </script>
 
 <h1>Bienvenido, {user.name}!</h1>
