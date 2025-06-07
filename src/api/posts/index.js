@@ -1,3 +1,5 @@
+import authBasic from '../../middlewares/auth-basic.js';
+
 // Simulación de base de datos
 const posts = [
   {
@@ -13,6 +15,14 @@ const posts = [
 ];
 
 export default class PostsAPI {
+  // Middlewares globales y específicos por método
+  getMiddlewares() {
+    return {
+      '*': [authBasic()],  // Se aplica a todos los métodos
+      post: [authBasic()]  // Se aplica adicionalmente a POST
+    };
+  }
+
   async handleGET(data) {
     const { query } = data;
     
@@ -37,4 +47,11 @@ export default class PostsAPI {
       }
     };
   }
+
+//   async handlePOST(data) {
+//     // Aquí iría la lógica para crear un nuevo post
+//     return {
+//       message: 'Post created successfully'
+//     };
+//   }
 } 

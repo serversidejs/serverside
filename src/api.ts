@@ -66,6 +66,75 @@ export class Api {
     }
   }
 
+  private async _executeMiddlewares(middlewares: Function[] | Record<string, Function[]>, req: Request, data: any, method?: string): Promise<Response | null> {
+    // Si es un array, son middlewares globales
+    if (Array.isArray(middlewares)) {
+      const next = async (index: number): Promise<Response | null> => {
+        if (index >= middlewares.length) {
+          return null;
+        }
+
+        const middleware = middlewares[index];
+        const result = await middleware(req, () => next(index + 1));
+
+        if (result instanceof Response) {
+          return result;
+        }
+
+        return next(index + 1);
+      };
+
+      return next(0);
+    }
+    
+    // Si es un objeto, primero ejecutamos los middlewares globales (*)
+    if (middlewares['*']) {
+      const globalMiddlewares = middlewares['*'];
+      const next = async (index: number): Promise<Response | null> => {
+        if (index >= globalMiddlewares.length) {
+          return null;
+        }
+
+        const middleware = globalMiddlewares[index];
+        const result = await middleware(req, () => next(index + 1));
+
+        if (result instanceof Response) {
+          return result;
+        }
+
+        return next(index + 1);
+      };
+
+      const globalResult = await next(0);
+      if (globalResult instanceof Response) {
+        return globalResult;
+      }
+    }
+
+    // Luego ejecutamos los middlewares específicos del método
+    if (method && middlewares[method.toLowerCase()]) {
+      const methodMiddlewares = middlewares[method.toLowerCase()];
+      const next = async (index: number): Promise<Response | null> => {
+        if (index >= methodMiddlewares.length) {
+          return null;
+        }
+
+        const middleware = methodMiddlewares[index];
+        const result = await middleware(req, () => next(index + 1));
+
+        if (result instanceof Response) {
+          return result;
+        }
+
+        return next(index + 1);
+      };
+
+      return next(0);
+    }
+
+    return null;
+  }
+
   private async _handleApiRequest(apiName: string, req: Request, params: Record<string, string>): Promise<Response> {
     try {
       // Importar el módulo dinámicamente
@@ -85,6 +154,7 @@ export class Api {
       const method = req.method.toUpperCase();
       const handler = apiInstance[`handle${method}`];
       
+      // Validar primero si existe el handler
       if (!handler || typeof handler !== 'function') {
         return new Response(JSON.stringify({ error: 'Method Not Allowed' }), {
           status: 405,
@@ -101,6 +171,16 @@ export class Api {
         headers: Object.fromEntries(req.headers.entries()),
         query: Object.fromEntries(new URL(req.url).searchParams)
       };
+
+      // Ejecutar los middlewares si existen
+      if (typeof apiInstance.getMiddlewares === 'function') {
+        const middlewares = apiInstance.getMiddlewares();
+        const middlewareResult = await this._executeMiddlewares(middlewares, req, data, method);
+        
+        if (middlewareResult instanceof Response) {
+          return middlewareResult; // Un middleware devolvió una respuesta
+        }
+      }
 
       // Ejecutar el handler
       const result = await handler.call(apiInstance, data);
