@@ -4,7 +4,7 @@
     <p>¡Eres un administrador!</p>
     {#if user.permissions.canEdit}
         <button>Editar Contenido</button>
-    {else}
+    {:else}
         <p>Solo puedes ver.</p>
     {/if}
 {:else}
@@ -28,7 +28,7 @@
         {#if task.subTasks}
             <h4>Subtareas:</h4>
             {#each task.subTasks as sub}
-                <p>- {sub.name} {#if sub.done}(Hecha){else}(Pendiente){/if}</p>
+                <p>- {sub.name} {#if sub.done}(Hecha){:else}(Pendiente){/if}</p>
             {/each}
         {/if}
     </div>
@@ -48,3 +48,12 @@
 <p>Contacto: {user.email}</p>
 <p>Número literal: {123}</p>
 <p>Booleano literal: {true}</p>
+
+
+<script>
+    console.log('Hola desde el script');
+
+    let user = JSON.parse('{@json user}');
+    
+    console.log('USER', user);
+</script>

@@ -1,5 +1,5 @@
 /**
- * @typedef {'text' | 'variable' | 'if' | 'each' | 'else'} NodeType
+ * @typedef {'text' | 'variable' | 'if' | 'each' | 'else' | 'json'} NodeType
  */
 
 /**
@@ -18,21 +18,22 @@ class Templatron {
      * @private
      * @type {RegExp}
      * Expresión regular para encontrar todas las etiquetas de plantilla con la nueva sintaxis:
+     * { variable }
+     * {@json variable} <-- ¡Nuevo!
      * {#if condition}
      * {:else}
      * {/if}
      * {#each collection as item}
      * {/each}
-     * {variable}
      *
      * Captura:
-     * 1. Comandos de bloque de apertura: {#if ...}, {#each ...}
-     * 2. Comando else: {:else}
-     * 3. Comandos de bloque de cierre: {/if}, {/each}
-     * 4. Variables: {variable}
+     * 1. Variables: { variable }
+     * 2. JSON variables: {@json variable}
+     * 3. Comandos de bloque de apertura: {#if ...}, {#each ...}
+     * 4. Comando else: {:else}
+     * 5. Comandos de bloque de cierre: {/if}, {/each}
      */
-    static TEMPLATE_TAG_REGEX = /\{(?:(?!\#|\:|\/)([\w\d\.]+))\s*\}|\{\#(?<command>if|each)\s+([\w\d\.]+)\s*(?:as\s+([\w\d]+))?\}|\{\:(?<elseCommand>else)\}|\{\/(?<endCommand>if|each)\}/g;
-
+    static TEMPLATE_TAG_REGEX = /\{(?:(?!\#|\:|\/|\@)([\w\d\.]+))\s*\}|\{\@json\s+([\w\d\.]+)\s*\}|\{\#(?<command>if|each)\s+([\w\d\.]+)\s*(?:as\s+([\w\d]+))?\}|\{\:(?<elseCommand>else)\}|\{\/(?<endCommand>if|each)\}/g;
 
     constructor() {
         // No hay estado en el constructor para hacer la instancia reutilizable.
@@ -51,7 +52,7 @@ class Templatron {
         let lastIndex = 0;
 
         // Iterar sobre todas las coincidencias de etiquetas en la plantilla
-        templateString.replace(Templatron.TEMPLATE_TAG_REGEX, (match, variableContent, command, conditionOrCollection, itemAlias, elseCommand, endCommand, offset) => {
+        templateString.replace(Templatron.TEMPLATE_TAG_REGEX, (match, variableContent, jsonVariableContent, command, conditionOrCollection, itemAlias, elseCommand, endCommand, offset) => {
             // Añadir el texto plano antes de la etiqueta actual
             if (offset > lastIndex) {
                 const text = templateString.substring(lastIndex, offset);
@@ -62,9 +63,13 @@ class Templatron {
             lastIndex = offset + match.length;
 
             if (variableContent) {
-                // Es una variable {{variable}}
+                // Es una variable { variable }
                 this._addNode(nodes, stack, { type: 'variable', value: variableContent.trim() });
-            } else if (command === 'if') {
+            } else if (jsonVariableContent) {
+                // Es una variable JSON {@json variable}
+                this._addNode(nodes, stack, { type: 'json', value: jsonVariableContent.trim() });
+            }
+            else if (command === 'if') {
                 // Es un bloque de apertura {#if condition}
                 const ifNode = { type: 'if', condition: conditionOrCollection.trim(), children: [] };
                 this._addNode(nodes, stack, ifNode);
@@ -168,6 +173,24 @@ class Templatron {
     }
 
     /**
+     * Escapa caracteres HTML y JavaScript dentro de una cadena.
+     * Esto es crucial para la seguridad al inyectar JSON en un script.
+     * @param {string} str - La cadena a escapar.
+     * @returns {string} La cadena escapada.
+     * @private
+     */
+    _escapeHtmlJs(str) {
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;')
+            .replace(/\//g, '&#x2F;') // Importante para evitar </script>
+            .replace(/`/g, '&#96;'); // Para template literals
+    }
+
+    /**
      * Renderiza el AST en una cadena HTML/texto.
      * @param {Node[]} nodes - El AST a renderizar.
      * @param {object} data - Los datos para la plantilla.
@@ -184,7 +207,19 @@ class Templatron {
                     break;
                 case 'variable':
                     const value = this._resolvePath(data, node.value);
-                    result += (value !== undefined && value !== null) ? String(value) : '';
+                    // Escapar por defecto las variables para seguridad (XSS)
+                    result += (value !== undefined && value !== null) ? this._escapeHtmlJs(value) : '';
+                    break;
+                case 'json':
+                    const jsonValue = this._resolvePath(data, node.value);
+                    // Importante: JSON.stringify puede producir caracteres que deben ser escapados
+                    // dentro de un bloque <script> HTML.
+                    // Aunque JSON.stringify ya escapa comillas dobles y barras invertidas,
+                    // necesitamos escapar <, >, & para evitar cierres de etiqueta script o entidades HTML
+                    // y para asegurar la validez dentro de HTML en general.
+                    const jsonString = JSON.stringify(jsonValue);
+                    result += jsonString;
+                    // result += this._escapeHtmlJs(jsonString); // Escapar la cadena JSON resultante
                     break;
                 case 'if':
                     if (this._evaluateCondition(node.condition, data)) {
