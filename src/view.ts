@@ -1,10 +1,7 @@
-import { readFileSync } from 'fs';
-import { join } from 'path';
+import { readFileSync, existsSync } from 'fs';
+import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-// import { renderFile } from './ejs.modern';
-import {Templatron} from './templatron';
-import { ComponentFactory } from './components/components.js';
+import { Templatron } from './templatron';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -15,26 +12,12 @@ interface ViewData {
 
 export class View {
   private static viewsPath = join(__dirname, 'routes');
-  private static layoutPath = join(this.viewsPath, 'layout.comp');
-  private static layout: string;
-
-  static {
-    // Cargar el layout al iniciar
-    try {
-      this.layout = readFileSync(this.layoutPath, 'utf-8');
-    } catch (error) {
-      console.error('Error loading layout:', error);
-      // this.layout = '{children}'; // Layout fallback simple
-    }
-  }
 
   static async render(viewName: string, data: ViewData = {}): Promise<Response> {
     try {
       // Leer el archivo .comp
-      const viewContent = readFileSync(
-        join(this.viewsPath, `${viewName}.comp`),
-        'utf-8'
-      );
+      const viewPath = join(this.viewsPath, `${viewName}.comp`);
+      const viewContent = readFileSync(viewPath, 'utf-8');
 
       // Separar script y template
       const { script, template } = this._parseComponent(viewContent);
@@ -49,13 +32,8 @@ export class View {
       const templatron = new Templatron();
       const renderedView = await templatron.render(template, finalData);
 
-      // // Renderizar el layout con el contenido de la vista
-      const layoutData = {
-        children: renderedView,
-        ...finalData
-      };
-
-      const fullHtml = await templatron.render(this.layout, layoutData);
+      // Encontrar y renderizar layouts anidados
+      const fullHtml = await this._renderLayouts(viewName, renderedView, finalData);
 
       return new Response(fullHtml, {
         headers: { 'Content-Type': 'text/html' },
@@ -64,6 +42,51 @@ export class View {
       console.error('Error rendering view:', error);
       return new Response('Error rendering view', { status: 500 });
     }
+  }
+
+  private static async _renderLayouts(viewName: string, content: string, data: ViewData): Promise<string> {
+    const templatron = new Templatron();
+    let currentContent = content;
+    let currentPath = viewName;
+
+    // Buscar layouts de forma recursiva desde la ubicación de la vista hacia arriba
+    while (true) {
+      // Obtener el directorio actual
+      const currentDir = dirname(currentPath);
+      
+      // Construir la ruta del layout
+      const layoutPath = join(this.viewsPath, currentDir, 'layout.comp');
+      
+      // Si existe el layout, usarlo
+      if (existsSync(layoutPath)) {
+        // Leer y parsear el layout
+        const layoutContent = readFileSync(layoutPath, 'utf-8');
+        const { script, template } = this._parseComponent(layoutContent);
+
+        // Evaluar el script del layout
+        const layoutData = await this._evaluateScript(script, {
+          ...data,
+          children: currentContent
+        });
+
+        // Renderizar el layout con el contenido actual
+        currentContent = await templatron.render(template, {
+          ...data,
+          ...layoutData,
+          children: currentContent
+        });
+      }
+
+      // Si estamos en la raíz, terminar
+      if (currentDir === '.') {
+        break;
+      }
+
+      // Mover al directorio padre
+      currentPath = currentDir;
+    }
+
+    return currentContent;
   }
 
   private static _parseComponent(content: string): { script: string; template: string } {
