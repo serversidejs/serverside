@@ -1,30 +1,50 @@
-<div class="container">
-    <h1>{{title.toUpperCase()}}</h1>
-    <p>{{content}}</p>
+<h1>Bienvenido, {user.name}!</h1>
 
-    {#if showWelcome}
-        <div class="welcome-message">
-            <h2>¡Bienvenido {{username}}!</h2>
-            <p>Nos alegra verte de nuevo.</p>
-        </div>
-    {:else}
-        <div class="login-prompt">
-            <h2>Inicia sesión</h2>
-            <p>Por favor, inicia sesión para continuar.</p>
-        </div>
+{#if user.isAdmin}
+    <p>¡Eres un administrador!</p>
+    {#if user.permissions.canEdit}
+        <button>Editar Contenido</button>
+    {else}
+        <p>Solo puedes ver.</p>
     {/if}
+{:else}
+    <p>No eres un administrador.</p>
+{/if}
 
-    <div class="notifications-by-category">
-        {#each categories as category}
-            <div class="category">
-                <h3>{{category.name}}</h3>
-                <ul>
-                    {#each category.notifications as n}
-                        <li>{@html n.text}</li>
-                    {/each}
-                </ul>
-            </div>
-        {/each}
+<h2>Mis Tareas:</h2>
+{#each tasks as task}
+    <div style="border: 1px solid #ccc; margin: 10px; padding: 5px;">
+        <h3>{task.description}</h3>
+        <p>Prioridad: {task.priority}</p>
+        {#if task.completed}
+            <span style="color: green;">Completada!</span>
+        {:else}
+            <span style="color: orange;">Pendiente.</span>
+            {#if task.dueDate}
+                <p>Fecha límite: {task.dueDate}</p>
+            {/if}
+        {/if}
+
+        {#if task.subTasks}
+            <h4>Subtareas:</h4>
+            {#each task.subTasks as sub}
+                <p>- {sub.name} {#if sub.done}(Hecha){else}(Pendiente){/if}</p>
+            {/each}
+        {/if}
     </div>
+{/each}
 
-</div> 
+{#if notifications.length}
+    <h3>Notificaciones ({notifications.length}):</h3>
+    <ul>
+    {#each notifications as notification}
+        <li>{notification}</li>
+    {/each}
+    </ul>
+{:else}
+    <p>No hay notificaciones nuevas.</p>
+{/if}
+
+<p>Contacto: {user.email}</p>
+<p>Número literal: {123}</p>
+<p>Booleano literal: {true}</p>

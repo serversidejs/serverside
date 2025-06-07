@@ -43,79 +43,43 @@ async function serveStatic(path: string): Promise<Response | null> {
 
 // Definir rutas
 router.get('/', async (req) => {
-  // const data = {
-  //   title: 'Kettu SSR',
-  //   content: 'Bienvenido a Kettu SSR Framework',
-  //   showWelcome: true,
-  //   username: 'Carlos',
-  //   categories: [
-  //     {
-  //       name: 'Trabajo',
-  //       notifications: [
-  //         { 
-  //           text: 'Nueva <strong>actualización</strong> disponible', 
-  //           read: false,
-  //           icon: '<svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="8" fill="#4CAF50"/></svg>'
-  //         },
-  //         { 
-  //           text: 'Recordatorio: <span class="highlight">Reunión</span> mañana', 
-  //           read: false,
-  //           icon: '<svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="8" fill="#FFC107"/></svg>'
-  //         }
-  //       ]
-  //     },
-  //     {
-  //       name: 'Personal',
-  //       notifications: [
-  //         { 
-  //           text: 'Has recibido un <em>mensaje</em> nuevo', 
-  //           read: true,
-  //           icon: '<svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="8" fill="#2196F3"/></svg>'
-  //         }
-  //       ]
-  //     },
-  //     {
-  //       name: 'Social',
-  //       notifications: []
-  //     }
-  //   ],
-  //   richContent: `
-  //     <div class="card">
-  //       <h3>Contenido Rico</h3>
-  //       <p>Este es un ejemplo de <strong>contenido HTML</strong> que incluye:</p>
-  //       <ul>
-  //         <li>Formato <em>enriquecido</em></li>
-  //         <li>Listas y <strong>estructura</strong></li>
-  //         <li>Y más...</li>
-  //       </ul>
-  //     </div>
-  //   `
-  // };
-
+ 
   const data = {
-    titulo: 'Página de Tareas',
-    usuario: {
-        nombre: 'Ana'
+    user: {
+        name: 'Carlos',
+        email: 'carlos@example.com',
+        isAdmin: true,
+        permissions: {
+            canEdit: true
+        }
     },
-    tareas: [
-        'Configurar el proyecto',
-        'Crear la plantilla EJS',
-        'Escribir el script de renderizado',
-        '¡Celebrar que funciona!'
+    tasks: [
+        {
+            description: 'Preparar presentación',
+            priority: 'alta',
+            completed: false,
+            dueDate: '2025-06-15',
+            subTasks: [
+                { name: 'Investigar tema', done: true },
+                { name: 'Diseñar diapositivas', done: false }
+            ]
+        },
+        {
+            description: 'Revisar informe',
+            priority: 'media',
+            completed: true,
+            subTasks: null // Demostrar que no hay problema si no existe
+        },
+        {
+            description: 'Comprar víveres',
+            priority: 'baja',
+            completed: false,
+            dueDate: '2025-06-08'
+        }
     ],
-    categories: [
-      {
-        name: 'Trabajo',
-        notifications: [
-          { 
-            text: 'Nueva <strong>actualización</strong> disponible', 
-            read: false,
-            icon: '<svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="8" fill="#4CAF50"/></svg>'
-          },
-        ]
-      },
-    ]
-}
+    notifications: ['Nueva actualización disponible', 'Tu suscripción caduca pronto']
+    // notifications: [] // Prueba con array vacío para el 'else'
+};
 
   
 
