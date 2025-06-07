@@ -29,7 +29,7 @@
       //   valor: this.$state.contador,
       //   timestamp: new Date().toLocaleTimeString()
       // }].slice(-5); // Mantenemos solo los últimos 5 valores
-      console.log('MENSAJE', formatMessage());
+      // console.log('MENSAJE', formatMessage());
     }, 1000);
   }
 
@@ -60,7 +60,12 @@
       <h2>Historial de valores</h2>
       <ul>
         <li :each={item in historial}>
-          Valor: <strong>{{ item.valor }}</strong> - Hora: {{ item.timestamp }}
+          <div :if={contador > 5}>
+            Valor: <strong>{{ item.valor }}</strong> - Hora: {{ item.timestamp }}
+          </div>
+          <div :else>
+            Valor: <strong>{{ item.valor }}</strong>
+          </div>
         </li>
       </ul>
     </div>

@@ -13,7 +13,8 @@ function generateComponentCode(template: string, script: string, filePath: strin
 
   // Convertimos el template procesado a la versión final con data-attributes
   processedTemplate = processedTemplate
-    .replace(/\s+:if=\{([^"]+)\}/g, ' data-if="$1"')
+    // Capturamos solo hasta encontrar la primera llave de cierre
+    .replace(/\s+:if=\{([^}]+)\}/g, ' data-if="$1"')
     .replace(/\s+:else/g, ' data-else')
     .replace(/\s+:each=\{([^}]+)\s+in\s+([^}]+)\}/g, ' data-each="$1 in $2"');
 
