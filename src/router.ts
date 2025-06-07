@@ -18,6 +18,7 @@ export class Router {
 
   constructor(path: string) {
     this.routesPath = path;
+    View.configure(this.routesPath);
     this._loadRoutes();
   }
 
@@ -58,7 +59,7 @@ export class Router {
                 routeParams[param] = matches[index + 1];
               });
             }
-
+            
             return await View.render(viewName, { params: routeParams });
           }
         });

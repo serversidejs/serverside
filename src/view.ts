@@ -1,22 +1,27 @@
 import { readFileSync, existsSync } from 'fs';
 import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
-import { Templatron } from './templatron';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+import { Templatron } from './templatron';
 
 interface ViewData {
   [key: string]: any;
 }
 
 export class View {
-  private static viewsPath = join(__dirname, 'routes');
+  private static viewsPath: string = '';
+
+  static configure(path: string) {
+    View.viewsPath = path;
+  }
 
   static async render(viewName: string, data: ViewData = {}): Promise<Response> {
+    if (!View.viewsPath) {
+      throw new Error('View.viewsPath not configured. Call View.configure() first.');
+    }
+
     try {
       // Leer el archivo .comp
-      const viewPath = join(this.viewsPath, `${viewName}.comp`);
+      const viewPath = join(View.viewsPath, `${viewName}.comp`);
       const viewContent = readFileSync(viewPath, 'utf-8');
 
       // Separar script y template
@@ -55,8 +60,8 @@ export class View {
       const currentDir = dirname(currentPath);
       
       // Construir las rutas de los layouts
-      const layoutPath = join(this.viewsPath, currentDir, '_layout.comp');
-      const resetLayoutPath = join(this.viewsPath, currentDir, '_layout@.comp');
+      const layoutPath = join(View.viewsPath, currentDir, '_layout.comp');
+      const resetLayoutPath = join(View.viewsPath, currentDir, '_layout@.comp');
       
       // Primero verificar si existe un layout que no extiende
       if (existsSync(resetLayoutPath)) {
