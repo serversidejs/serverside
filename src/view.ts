@@ -54,10 +54,31 @@ export class View {
       // Obtener el directorio actual
       const currentDir = dirname(currentPath);
       
-      // Construir la ruta del layout
+      // Construir las rutas de los layouts
       const layoutPath = join(this.viewsPath, currentDir, 'layout.comp');
+      const resetLayoutPath = join(this.viewsPath, currentDir, 'layout@.comp');
       
-      // Si existe el layout, usarlo
+      // Primero verificar si existe un layout que no extiende
+      if (existsSync(resetLayoutPath)) {
+        // Leer y parsear el layout que no extiende
+        const layoutContent = readFileSync(resetLayoutPath, 'utf-8');
+        const { script, template } = this._parseComponent(layoutContent);
+
+        // Evaluar el script del layout
+        const layoutData = await this._evaluateScript(script, {
+          ...data,
+          children: currentContent
+        });
+
+        // Renderizar el layout con el contenido actual y terminar
+        return await templatron.render(template, {
+          ...data,
+          ...layoutData,
+          children: currentContent
+        });
+      }
+      
+      // Si no hay layout que no extiende, verificar el layout normal
       if (existsSync(layoutPath)) {
         // Leer y parsear el layout
         const layoutContent = readFileSync(layoutPath, 'utf-8');
