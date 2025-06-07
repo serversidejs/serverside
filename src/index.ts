@@ -7,11 +7,13 @@ import { join } from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import { statSync, readFileSync } from 'fs';
+import { Api } from './api';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const router = new Router();
+const api = new Api();
 
 // Servir archivos estáticos
 async function serveStatic(path: string): Promise<Response | null> {
@@ -96,6 +98,14 @@ Bun.serve({
     // Intentar servir archivos estáticos primero
     const staticResponse = await serveStatic(url.pathname);
     if (staticResponse) return staticResponse;
+
+
+    const path = url.pathname;
+
+    // Si la ruta comienza con /api, usar el manejador de API
+    if (path.startsWith('/api')) {
+      return await api.handle(req);
+    }
 
     // Si no es un archivo estático, manejar como ruta
     return router.handle(req);
