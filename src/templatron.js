@@ -1,5 +1,5 @@
 /**
- * @typedef {'text' | 'variable' | 'if' | 'each' | 'else' | 'json'} NodeType
+ * @typedef {'text' | 'variable' | 'if' | 'each' | 'else' | 'json' | 'html' | 'include'} NodeType
  */
 
 /**
@@ -33,7 +33,7 @@ class Templatron {
      * 4. Comando else: {:else}
      * 5. Comandos de bloque de cierre: {/if}, {/each}
      */
-    static TEMPLATE_TAG_REGEX = /\{(?:(?!\#|\:|\/|\@)([\w\d\.]+))\s*\}|\{\@json\s+([\w\d\.]+)\s*\}|\{\#(?<command>if|each)\s+([\w\d\.]+)\s*(?:as\s+([\w\d]+))?\}|\{\:(?<elseCommand>else)\}|\{\/(?<endCommand>if|each)\}/g;
+    static TEMPLATE_TAG_REGEX = /\{(?:(?!\#|\:|\/|\@)([\w\d\.]+))\s*\}|\{\@(?:json|html)\s+([\w\d\.]+)\s*\}|\{\#(?<command>if|each|include)\s+([\w\d\.\/]+)\s*(?:as\s+([\w\d]+))?\}|\{\:(?<elseCommand>else)\}|\{\/(?<endCommand>if|each)\}/g;
 
     constructor() {
         // No hay estado en el constructor para hacer la instancia reutilizable.
@@ -52,7 +52,7 @@ class Templatron {
         let lastIndex = 0;
 
         // Iterar sobre todas las coincidencias de etiquetas en la plantilla
-        templateString.replace(Templatron.TEMPLATE_TAG_REGEX, (match, variableContent, jsonVariableContent, command, conditionOrCollection, itemAlias, elseCommand, endCommand, offset) => {
+        templateString.replace(Templatron.TEMPLATE_TAG_REGEX, (match, variableContent, jsonOrHtmlVariableContent, command, conditionOrCollection, itemAlias, elseCommand, endCommand, offset) => {
             // Añadir el texto plano antes de la etiqueta actual
             if (offset > lastIndex) {
                 const text = templateString.substring(lastIndex, offset);
@@ -65,9 +65,13 @@ class Templatron {
             if (variableContent) {
                 // Es una variable { variable }
                 this._addNode(nodes, stack, { type: 'variable', value: variableContent.trim() });
-            } else if (jsonVariableContent) {
-                // Es una variable JSON {@json variable}
-                this._addNode(nodes, stack, { type: 'json', value: jsonVariableContent.trim() });
+            } else if (jsonOrHtmlVariableContent) {
+                // Es una variable JSON o HTML {@json variable} o {@html variable}
+                const isHtml = match.startsWith('{@html');
+                this._addNode(nodes, stack, { 
+                    type: isHtml ? 'html' : 'json', 
+                    value: jsonOrHtmlVariableContent.trim() 
+                });
             }
             else if (command === 'if') {
                 // Es un bloque de apertura {#if condition}
@@ -79,6 +83,9 @@ class Templatron {
                 const eachNode = { type: 'each', collection: conditionOrCollection.trim(), itemAlias: (itemAlias || 'item').trim(), children: [] };
                 this._addNode(nodes, stack, eachNode);
                 stack.push(eachNode);
+            } else if (command === 'include') {
+                // Es una inclusión de componente {#include "path/to/component"}
+                this._addNode(nodes, stack, { type: 'include', value: conditionOrCollection.trim() });
             } else if (elseCommand === 'else') {
                 // Es un bloque {:else}
                 const parent = stack[stack.length - 1];
@@ -197,9 +204,8 @@ class Templatron {
      * @returns {string} La cadena de texto/HTML renderizada.
      * @private
      */
-    _renderNodes(nodes, data) {
+    async _renderNodes(nodes, data) {
         let result = '';
-
         for (const node of nodes) {
             switch (node.type) {
                 case 'text':
@@ -207,36 +213,43 @@ class Templatron {
                     break;
                 case 'variable':
                     const value = this._resolvePath(data, node.value);
-                    // Escapar por defecto las variables para seguridad (XSS)
-                    result += (value !== undefined && value !== null) ? this._escapeHtmlJs(value) : '';
+                    result += value !== undefined ? this._escapeHtmlJs(value) : '';
                     break;
                 case 'json':
                     const jsonValue = this._resolvePath(data, node.value);
-                    // Importante: JSON.stringify puede producir caracteres que deben ser escapados
-                    // dentro de un bloque <script> HTML.
-                    // Aunque JSON.stringify ya escapa comillas dobles y barras invertidas,
-                    // necesitamos escapar <, >, & para evitar cierres de etiqueta script o entidades HTML
-                    // y para asegurar la validez dentro de HTML en general.
-                    const jsonString = JSON.stringify(jsonValue);
-                    result += jsonString;
-                    // result += this._escapeHtmlJs(jsonString); // Escapar la cadena JSON resultante
+                    result += jsonValue !== undefined ? this._escapeHtmlJs(JSON.stringify(jsonValue)) : 'null';
+                    break;
+                case 'html':
+                    const htmlValue = this._resolvePath(data, node.value);
+                    result += htmlValue !== undefined ? htmlValue : '';
                     break;
                 case 'if':
                     if (this._evaluateCondition(node.condition, data)) {
-                        result += this._renderNodes(node.children, data);
-                    } else if (node.elseChildren && node.elseChildren.length > 0) {
-                        result += this._renderNodes(node.elseChildren, data);
+                        result += await this._renderNodes(node.children, data);
+                    } else if (node.elseChildren) {
+                        result += await this._renderNodes(node.elseChildren, data);
                     }
                     break;
                 case 'each':
                     const collection = this._resolvePath(data, node.collection);
                     if (Array.isArray(collection)) {
-                        collection.forEach(item => {
-                            const iterationData = { ...data, [node.itemAlias]: item };
-                            result += this._renderNodes(node.children, iterationData);
-                        });
-                    } else {
-                        console.warn(`Templatron Warning: 'each' expected an array for '${node.collection}', but received non-array data.`);
+                        for (const item of collection) {
+                            const itemData = { ...data, [node.itemAlias]: item };
+                            result += await this._renderNodes(node.children, itemData);
+                        }
+                    }
+                    break;
+                case 'include':
+                    try {
+                        const fs = require('fs');
+                        const path = require('path');
+                        const componentPath = path.join(process.cwd(), 'src', node.value);
+                        const componentContent = fs.readFileSync(componentPath, 'utf8');
+                        const componentNodes = this._compile(componentContent);
+                        result += await this._renderNodes(componentNodes, data);
+                    } catch (error) {
+                        console.error(`Error loading component ${node.value}:`, error);
+                        result += `<!-- Error loading component: ${node.value} -->`;
                     }
                     break;
             }

@@ -15,17 +15,16 @@ interface ViewData {
 
 export class View {
   private static viewsPath = join(__dirname, 'routes');
-  private static layoutPath = join(__dirname, 'views/layouts/main.html');
+  private static layoutPath = join(this.viewsPath, 'layout.comp');
   private static layout: string;
 
   static {
     // Cargar el layout al iniciar
     try {
       this.layout = readFileSync(this.layoutPath, 'utf-8');
-      // Asegurarse de que el layout incluya el script de componentes
     } catch (error) {
       console.error('Error loading layout:', error);
-      this.layout = '{{content}}'; // Layout fallback simple
+      // this.layout = '{children}'; // Layout fallback simple
     }
   }
 
@@ -49,7 +48,14 @@ export class View {
       // Renderizar el template con los datos combinados
       const templatron = new Templatron();
       const renderedView = await templatron.render(template, finalData);
-      const fullHtml = this.layout.replace('{@children}', renderedView);
+
+      // // Renderizar el layout con el contenido de la vista
+      const layoutData = {
+        children: renderedView,
+        ...finalData
+      };
+
+      const fullHtml = await templatron.render(this.layout, layoutData);
 
       return new Response(fullHtml, {
         headers: { 'Content-Type': 'text/html' },

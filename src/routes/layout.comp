@@ -1,0 +1,84 @@
+<script side="server">
+// El layout puede tener su propia lógica del servidor
+return {
+    title: "Mi Aplicación",
+    // Podemos acceder a los datos de la vista a través de children
+    ...children
+};
+</script>
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{title}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        header {
+            background: #333;
+            color: white;
+            padding: 1rem;
+        }
+        nav {
+            background: #444;
+            padding: 0.5rem;
+        }
+        nav a {
+            color: white;
+            text-decoration: none;
+            margin-right: 1rem;
+        }
+        nav a:hover {
+            text-decoration: underline;
+        }
+        main {
+            padding: 20px;
+        }
+        footer {
+            background: #333;
+            color: white;
+            text-align: center;
+            padding: 1rem;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>{title}</h1>
+        </div>
+    </header>
+    
+    <nav>
+        <div class="container">
+            <a href="/">Inicio</a>
+            <a href="/blog">Blog</a>
+            <a href="/about">Acerca de</a>
+        </div>
+    </nav>
+
+    <main class="container">
+        {@html children}
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2024 Mi Aplicación</p>
+        </div>
+    </footer>
+</body>
+</html> 
