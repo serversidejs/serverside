@@ -14,21 +14,17 @@
         </div>
     {/if}
 
-    {#if notifications.length > 0}
-        <div class="notifications">
-            <h3>Tienes {{notifications.length}} notificación{{notifications.length !== 1 ? 'es' : ''}}</h3>
-            <ul>
-                {#each notifications as notification, i}
-                <li class="{{notification.read ? 'read' : 'unread'}}">
-                    {{i + 1}}. {{notification.text}}
-                </li>
-                {/each}
-            </ul>
-        </div>
-    {/if}
-
-    <div class="stats">
-        <p>Última actualización: {{new Date().toLocaleString()}}</p>
-        <p>Notificaciones sin leer: {{notifications.filter(n => !n.read).length}}</p>
+    <div class="notifications-by-category">
+        {#each categories as category}
+            <div class="category">
+                <h3>{{category.name}}</h3>
+                <ul>
+                    {#each category.notifications as n}
+                        <li>{@html n.text}</li>
+                    {/each}
+                </ul>
+            </div>
+        {/each}
     </div>
+
 </div> 

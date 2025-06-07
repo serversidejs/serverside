@@ -43,17 +43,83 @@ async function serveStatic(path: string): Promise<Response | null> {
 
 // Definir rutas
 router.get('/', async (req) => {
-  return View.render('index', {
-    title: 'Kettu SSR',
-    content: 'Bienvenido a Kettu SSR Framework',
-    showWelcome: true,
-    username: 'Carlos',
-    notifications: [
-      { id: 1, text: 'Primera notificación', read: false },
-      { id: 2, text: 'Segunda notificación', read: true },
-      { id: 3, text: 'Tercera notificación', read: false }
+  // const data = {
+  //   title: 'Kettu SSR',
+  //   content: 'Bienvenido a Kettu SSR Framework',
+  //   showWelcome: true,
+  //   username: 'Carlos',
+  //   categories: [
+  //     {
+  //       name: 'Trabajo',
+  //       notifications: [
+  //         { 
+  //           text: 'Nueva <strong>actualización</strong> disponible', 
+  //           read: false,
+  //           icon: '<svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="8" fill="#4CAF50"/></svg>'
+  //         },
+  //         { 
+  //           text: 'Recordatorio: <span class="highlight">Reunión</span> mañana', 
+  //           read: false,
+  //           icon: '<svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="8" fill="#FFC107"/></svg>'
+  //         }
+  //       ]
+  //     },
+  //     {
+  //       name: 'Personal',
+  //       notifications: [
+  //         { 
+  //           text: 'Has recibido un <em>mensaje</em> nuevo', 
+  //           read: true,
+  //           icon: '<svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="8" fill="#2196F3"/></svg>'
+  //         }
+  //       ]
+  //     },
+  //     {
+  //       name: 'Social',
+  //       notifications: []
+  //     }
+  //   ],
+  //   richContent: `
+  //     <div class="card">
+  //       <h3>Contenido Rico</h3>
+  //       <p>Este es un ejemplo de <strong>contenido HTML</strong> que incluye:</p>
+  //       <ul>
+  //         <li>Formato <em>enriquecido</em></li>
+  //         <li>Listas y <strong>estructura</strong></li>
+  //         <li>Y más...</li>
+  //       </ul>
+  //     </div>
+  //   `
+  // };
+
+  const data = {
+    titulo: 'Página de Tareas',
+    usuario: {
+        nombre: 'Ana'
+    },
+    tareas: [
+        'Configurar el proyecto',
+        'Crear la plantilla EJS',
+        'Escribir el script de renderizado',
+        '¡Celebrar que funciona!'
+    ],
+    categories: [
+      {
+        name: 'Trabajo',
+        notifications: [
+          { 
+            text: 'Nueva <strong>actualización</strong> disponible', 
+            read: false,
+            icon: '<svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="8" fill="#4CAF50"/></svg>'
+          },
+        ]
+      },
     ]
-  });
+}
+
+  
+
+  return View.render('index', data);
 });
 
 // Iniciar servidor

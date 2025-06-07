@@ -2,6 +2,7 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import { renderFile } from './ejs.modern';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -24,8 +25,27 @@ export class View {
       this.layout = '{{content}}'; // Layout fallback simple
     }
   }
+  static async render(viewName: string, data: ViewData = {}): Response {
+    try {
+      // Leer la vista
+      // const viewContent = readFileSync(
+      //   join(this.viewsPath, `${viewName}.html`),
+      //   'utf-8'
+      // );
 
-  static render(viewName: string, data: ViewData = {}): Response {
+      const renderedView = await renderFile(join(this.viewsPath, `${viewName}.ejs`), data);
+      // Insertar la vista en el layout y procesarlo en el mismo orden
+      // let fullHtml = this.layout.replace('{{content}}', renderedView);
+
+      return new Response(renderedView, {
+        headers: { 'Content-Type': 'text/html' },
+      });
+    } catch (error) {
+      console.error('Error rendering view:', error);
+      return new Response('Error rendering view', { status: 500 });
+    }
+  }
+  static render2(viewName: string, data: ViewData = {}): Response {
     try {
       // Leer la vista
       const viewContent = readFileSync(
@@ -33,19 +53,16 @@ export class View {
         'utf-8'
       );
 
-      // Primero procesamos los bucles each
+      // Procesamos en este orden:
+      // 1. Bucles each (que internamente procesan sus condicionales y variables)
       let renderedView = this.processEachLoops(viewContent, data);
-      
-      // Luego procesamos los condicionales
+      // 2. Condicionales de nivel superior
       renderedView = this.processConditionals(renderedView, data);
-      
-      // Finalmente procesamos las variables
+      // 3. Variables y HTML sin escapar de nivel superior
       renderedView = this.processTemplate(renderedView, data);
 
-      // Insertar la vista en el layout
+      // Insertar la vista en el layout y procesarlo en el mismo orden
       let fullHtml = this.layout.replace('{{content}}', renderedView);
-
-      // Procesar el layout en el mismo orden
       fullHtml = this.processEachLoops(fullHtml, data);
       fullHtml = this.processConditionals(fullHtml, data);
       fullHtml = this.processTemplate(fullHtml, data);
@@ -60,9 +77,27 @@ export class View {
   }
 
   private static processTemplate(template: string, data: ViewData): string {
-    return template.replace(/\{\{([^}]+)\}\}/g, (match, expression) => {
+    // Primero procesamos las expresiones HTML sin escapar
+    let result = template.replace(/\{@html\s+([^}]+)\}/g, (match, expression) => {
       try {
-        // Creamos una función que evaluará la expresión en el contexto de los datos
+        const evalExpression = new Function(...Object.keys(data), `
+          try {
+            const result = ${expression.trim()};
+            return result ?? '';
+          } catch (e) {
+            return '';
+          }
+        `);
+        return evalExpression(...Object.values(data));
+      } catch (error) {
+        console.error('Error processing HTML expression:', expression, error);
+        return '';
+      }
+    });
+
+    // Luego procesamos las expresiones normales (escapando HTML)
+    result = result.replace(/\{\{([^}]+)\}\}/g, (match, expression) => {
+      try {
         const evalExpression = new Function(...Object.keys(data), `
           try {
             const result = ${expression.trim()};
@@ -72,13 +107,25 @@ export class View {
           }
         `);
         
-        // Evaluamos la expresión con los datos como contexto
-        return evalExpression(...Object.values(data));
+        // Escapamos el HTML para las expresiones normales
+        return this.escapeHtml(evalExpression(...Object.values(data)));
       } catch (error) {
         console.error('Error processing template expression:', expression, error);
         return '';
       }
     });
+
+    return result;
+  }
+
+  private static escapeHtml(unsafe: any): string {
+    if (unsafe === null || unsafe === undefined) return '';
+    return String(unsafe)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
   }
 
   private static processConditionals(template: string, data: ViewData): string {
@@ -105,32 +152,98 @@ export class View {
 
   private static processEachLoops(template: string, data: ViewData): string {
     let result = template;
-    const eachRegex = /\{#each[\s]+([^\s]+)[\s]+as[\s]+([^\s]+)(?:[\s]*,[\s]*([^\s]+))?[\s]*\}([\s\S]*?)\{\/each\}/g;
+    const eachRegex = /\{#each[\s]+([^}\s]+(?:\.[^}\s]+)*)[\s]+as[\s]+([^\s]+)(?:[\s]*,[\s]*([^\s]+))?[\s]*\}([\s\S]*?)\{\/each\}/g;
     
-    result = result.replace(eachRegex, (match, arrayName, itemName, indexName, content) => {
+    // Encontramos todos los matches primero
+    const matches: Array<{
+      fullMatch: string;
+      arrayPath: string;
+      itemName: string;
+      indexName: string | undefined;
+      content: string;
+      start: number;
+    }> = [];
+
+    let match;
+    while ((match = eachRegex.exec(result)) !== null) {
+      matches.push({
+        fullMatch: match[0],
+        arrayPath: match[1],
+        itemName: match[2],
+        indexName: match[3],
+        content: match[4],
+        start: match.index
+      });
+    }
+
+    // Procesamos los matches de adentro hacia afuera (reverse order)
+    for (let i = matches.length - 1; i >= 0; i--) {
+      const { fullMatch, arrayPath, itemName, indexName, content, start } = matches[i];
+      
       try {
-        const array = data[arrayName];
-        if (!Array.isArray(array)) {
-          console.error(`'${arrayName}' is not an array`);
-          return '';
+        // Evaluamos el array
+        let array;
+        if (arrayPath.includes('.')) {
+          const parts = arrayPath.split('.');
+          const firstPart = parts[0];
+          console.log('FIRST PART', firstPart, arrayPath)
+          if (!(firstPart in data)) {
+            console.error(`Cannot find '${firstPart}' in current context. Available keys:`, Object.keys(data));
+            continue;
+          }
+
+          let current = data[firstPart];
+          for (let i = 1; i < parts.length; i++) {
+            if (current && typeof current === 'object') {
+              current = current[parts[i]];
+            } else {
+              console.error(`Cannot access ${parts[i]} of ${arrayPath}, current value:`, current);
+              continue;
+            }
+          }
+          array = current;
+        } else {
+          array = data[arrayPath];
         }
 
-        // Procesamos cada elemento del array
-        return array.map((item, index) => {
-          // Creamos un nuevo contexto que incluye la variable del bucle y el índice si se especificó
-          const loopData = { 
-            ...data, 
+        if (!Array.isArray(array)) {
+          console.error(`'${arrayPath}' is not an array or is undefined. Context:`, {
+            arrayPath,
+            itemName,
+            dataKeys: Object.keys(data)
+          });
+          continue;
+        }
+
+        // Procesamos el array
+        const processed = array.map((item, index) => {
+          const loopData = {
+            ...data,
             [itemName]: item,
             ...(indexName ? { [indexName]: index } : {})
           };
-          // Procesamos el contenido con el nuevo contexto
-          return this.processTemplate(content, loopData);
+
+          // Procesamos el contenido
+          let processedContent = content;
+          // Primero los condicionales
+          processedContent = this.processConditionals(processedContent, loopData);
+          // Luego las variables y HTML sin escapar
+          processedContent = this.processTemplate(processedContent, loopData);
+          
+          return processedContent;
         }).join('');
+
+        // Reemplazamos el match completo con el contenido procesado
+        result = result.slice(0, start) + processed + result.slice(start + fullMatch.length);
       } catch (error) {
-        console.error('Error processing each loop:', error);
-        return '';
+        console.error('Error processing each loop:', error, {
+          arrayPath,
+          itemName,
+          indexName,
+          dataKeys: Object.keys(data)
+        });
       }
-    });
+    }
 
     return result;
   }
