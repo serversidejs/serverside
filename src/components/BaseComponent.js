@@ -33,10 +33,9 @@ export class BaseComponent extends HTMLElement {
 
   connectedCallback() {
     // 1. Buscamos y cacheamos los nodos de texto UNA SOLA VEZ.
-    
+    this.#initializeTextBindings(this.shadowRoot);
     this.#setupIfBindings();
     this.#setupEachBindings();
-    this.#setupAndCacheBindings();
 
     // loadScript es ahora el lugar donde el usuario define su estado inicial
     if (this.loadScript) {
@@ -61,6 +60,19 @@ export class BaseComponent extends HTMLElement {
     if (this.onDestroy) {
       this.onDestroy();
     }
+  }
+  // MÉTODO REFACTORIZADO: Ahora acepta un elemento como argumento
+  #initializeTextBindings(rootElement) {
+    rootElement.querySelectorAll('[data-bind]').forEach(span => {
+        // Evitamos registrar un binding dos veces si por alguna razón se llamara de nuevo
+        if (span.dataset.isBound) return;
+
+        const key = span.dataset.bind;
+        const textNode = document.createTextNode('');
+        this.#textBindings.push({ key, node: span, parentIf: null }); // parentIf lo usaremos después
+        // span.parentNode.replaceChild(textNode, span);
+        // span.dataset.isBound = 'true'; // Marcamos el span original (antes de reemplazarlo)
+    });
   }
 
   // Función auxiliar para obtener el valor de una propiedad anidada
@@ -116,24 +128,22 @@ export class BaseComponent extends HTMLElement {
   }
 
   #setupEachBindings() {
-    this.shadowRoot.querySelectorAll('[data-each]').forEach(eachEl => {
-      const [itemName, arrayPath] = eachEl.dataset.each.split(' in ').map(s => s.trim());
-      const anchor = document.createComment(`each anchor for: ${arrayPath}`);
-      
-      // Guardamos la plantilla original
-      eachEl.removeAttribute('data-each');
-      const template = eachEl.cloneNode(true);
-
-      // Reemplazamos el elemento original con el ancla
-      eachEl.parentNode.replaceChild(anchor, eachEl);
-
-      this.#eachBindings.push({
-        itemName,
-        arrayPath,
-        template,
-        anchor,
-        elements: [] // Aquí guardaremos los elementos renderizados
-      });
+    this.shadowRoot.querySelectorAll('[data-each]').forEach(el => {
+        const expression = el.dataset.each;
+        const [itemName, arrayName] = expression.split(' in ').map(s => s.trim());
+        const anchor = document.createComment(`:each anchor for ${expression}`);
+        
+        el.removeAttribute('data-each');
+        const template = el.cloneNode(true);
+        el.parentNode.replaceChild(anchor, el);
+        
+        this.#eachBindings.push({
+            itemName,
+            arrayName,
+            anchor,
+            template,
+            mountedNodes: [] // Guardaremos los nodos creados aquí
+        });
     });
   }
 
@@ -171,8 +181,7 @@ export class BaseComponent extends HTMLElement {
   }
 
   render() {
-    // Renderizar bindings normales
-
+    
 
     // Renderizar show/else
     this.shadowRoot.querySelectorAll('[data-show]').forEach(el => {
@@ -192,80 +201,150 @@ export class BaseComponent extends HTMLElement {
     for (const binding of this.#ifBindings) {
       const shouldShowIf = new Function('$state', `return !!($state.${binding.condition})`)(this.$state);
 
-      if (shouldShowIf) {
-        // La condición del IF es verdadera
-        if (binding.mountedBlock !== 'if') {
-          // Si hay algo montado (el bloque else), lo quitamos
-          binding.mountedElement?.remove();
-
-          // Montamos el bloque IF
+      if (shouldShowIf && !binding.isMounted) {
           const clone = binding.ifTemplate.cloneNode(true);
+
+          // ¡LA SOLUCIÓN! Inicializamos los bindings solo en el nuevo clon
+          this.#initializeTextBindings(clone);
+
           binding.anchor.parentNode.insertBefore(clone, binding.anchor.nextSibling);
-          binding.mountedBlock = 'if';
+          binding.isMounted = true;
           binding.mountedElement = clone;
-        }
-      } else {
-        // La condición del IF es falsa
-        if (binding.elseTemplate) {
-          // Y tenemos un bloque ELSE para mostrar
-          if (binding.mountedBlock !== 'else') {
-            binding.mountedElement?.remove();
-            const clone = binding.elseTemplate.cloneNode(true);
-            binding.anchor.parentNode.insertBefore(clone, binding.anchor.nextSibling);
-            binding.mountedBlock = 'else';
-            binding.mountedElement = clone;
-          }
-        } else {
-          // No hay bloque ELSE, así que no mostramos nada
-          if (binding.mountedBlock) {
-            binding.mountedElement.remove();
-            binding.mountedBlock = null;
-            binding.mountedElement = null;
-          }
-        }
+      } else if (!shouldShowIf && binding.isMounted) {
+          binding.mountedElement.remove();
+          binding.isMounted = false;
+          binding.mountedElement = null;
+          // Aquí deberíamos limpiar los bindings asociados, pero lo omitimos por simplicidad de momento
       }
     }
 
-    // Renderizar each
+    // --- LÓGICA PARA :each ---
     for (const binding of this.#eachBindings) {
-      const array = this.#getNestedValue(this.$state, binding.arrayPath) || [];
-      console.log('array', array)
-      console.log('binding.itemName', binding.itemName)
-      console.log('this.#textBindings', this.#textBindings)
-      console.log('binding.arrayPath', binding.arrayPath)
-      // Limpiar elementos anteriores si la longitud no coincide
-      if (binding.elements.length !== array.length) {
-        binding.elements.forEach(el => el.remove());
-        binding.elements = [];
-        
-        // Crear nuevos elementos
-        array.forEach((item, index) => {
+      const items = this.$state[binding.arrayName] || [];
+      
+      // Estrategia simple: limpiar y re-renderizar todo el bucle.
+      // (Una versión más avanzada haría un "diffing" para más rendimiento)
+      binding.mountedNodes.forEach(node => node.remove());
+      binding.mountedNodes = [];
+
+      let lastNode = binding.anchor;
+
+      items.forEach(item => {
           const clone = binding.template.cloneNode(true);
-          
-          // Reemplazar las referencias al item en el contenido
-          const itemRegex = new RegExp(`{{\\s*${binding.itemName}\\s*}}|{{\\s*${binding.itemName}\\.([\\w\\.]+)\\s*}}`, 'g');
-          console.log('clone', clone.innerHTML);
-          clone.innerHTML = clone.innerHTML.replace(itemRegex, (match, prop) => {
-            // Si es solo el item (sin propiedad), retornamos el item completo
-            if (match.includes(binding.itemName) && !prop) {
-              return `<span data-bind="${binding.arrayPath}[${index}]"></span>`;
-            }
-            // Si es una propiedad del item
-            return `<span data-bind="${binding.arrayPath}[${index}].${prop}"></span>`;
+
+          // Buscamos los bindings DENTRO del clon
+          clone.querySelectorAll('[data-bind]').forEach(span => {
+              const key = span.dataset.bind; // ej: "item.name"
+              
+              // ¡LA CLAVE! Evaluamos la expresión con el `item` actual en el contexto.
+              const value = new Function('$state', binding.itemName, `try { return ${key} } catch(e){ return ''; }`)(this.$state, item);
+              
+              const textNode = document.createTextNode(value ?? '');
+              span.parentNode.replaceChild(textNode, span);
           });
 
-          binding.anchor.parentNode.insertBefore(clone, binding.anchor.nextSibling);
-          binding.elements.push(clone);
-        });
-
-        // Actualizar los bindings después de crear nuevos elementos
-        this.#setupAndCacheBindings();
-      }
+          // Insertamos el clon procesado en el DOM
+          lastNode.parentNode.insertBefore(clone, lastNode.nextSibling);
+          binding.mountedNodes.push(clone);
+          lastNode = clone; // para mantener el orden
+      });
     }
 
-    for (const binding of this.#textBindings) {
-      const value = this.#getNestedValue(this.$state, binding.key);
-      binding.node.textContent = value ?? '';
-    }
+    // Renderizar bindings normales
+    document.querySelectorAll('[data-bind]').forEach(span => {
+      const key = span.dataset.bind; // ej: "item.name"
+      
+      // ¡LA CLAVE! Evaluamos la expresión con el `item` actual en el contexto.
+      const value = new Function('$state', `try { return $state.${key} } catch(e){ return ''; }`)(this.$state);
+      
+      const textNode = document.createTextNode(value ?? '');
+      span.parentNode.replaceChild(textNode, span);
+  });
+    // for (const binding of this.#textBindings) {
+    //   const value = new Function('$state', `try { return $state.${binding.key} } catch(e){ return undefined; }`)(this.$state);
+    //   binding.node.textContent = value ?? '';
+      
+    //   // const textNode = document.createTextNode(value ?? '');
+    //   // binding.node.parentNode.replaceChild(textNode, binding.node);
+    //   // binding.node.dataset.isBound = 'true';
+    // }
+    // for (const binding of this.#ifBindings) {
+    //   const shouldShowIf = new Function('$state', `return !!($state.${binding.condition})`)(this.$state);
+
+    //   if (shouldShowIf) {
+    //     // La condición del IF es verdadera
+    //     if (binding.mountedBlock !== 'if') {
+    //       // Si hay algo montado (el bloque else), lo quitamos
+    //       binding.mountedElement?.remove();
+
+    //       // Montamos el bloque IF
+    //       const clone = binding.ifTemplate.cloneNode(true);
+    //       binding.anchor.parentNode.insertBefore(clone, binding.anchor.nextSibling);
+    //       binding.mountedBlock = 'if';
+    //       binding.mountedElement = clone;
+    //     }
+    //   } else {
+    //     // La condición del IF es falsa
+    //     if (binding.elseTemplate) {
+    //       // Y tenemos un bloque ELSE para mostrar
+    //       if (binding.mountedBlock !== 'else') {
+    //         binding.mountedElement?.remove();
+    //         const clone = binding.elseTemplate.cloneNode(true);
+    //         binding.anchor.parentNode.insertBefore(clone, binding.anchor.nextSibling);
+    //         binding.mountedBlock = 'else';
+    //         binding.mountedElement = clone;
+    //       }
+    //     } else {
+    //       // No hay bloque ELSE, así que no mostramos nada
+    //       if (binding.mountedBlock) {
+    //         binding.mountedElement.remove();
+    //         binding.mountedBlock = null;
+    //         binding.mountedElement = null;
+    //       }
+    //     }
+    //   }
+    // }
+
+    // Renderizar each
+    // for (const binding of this.#eachBindings) {
+    //   const array = this.#getNestedValue(this.$state, binding.arrayPath) || [];
+    //   console.log('array', array)
+    //   console.log('binding.itemName', binding.itemName)
+    //   console.log('this.#textBindings', this.#textBindings)
+    //   console.log('binding.arrayPath', binding.arrayPath)
+    //   // Limpiar elementos anteriores si la longitud no coincide
+    //   if (binding.elements.length !== array.length) {
+    //     binding.elements.forEach(el => el.remove());
+    //     binding.elements = [];
+        
+    //     // Crear nuevos elementos
+    //     array.forEach((item, index) => {
+    //       const clone = binding.template.cloneNode(true);
+          
+    //       // Reemplazar las referencias al item en el contenido
+    //       const itemRegex = new RegExp(`{{\\s*${binding.itemName}\\s*}}|{{\\s*${binding.itemName}\\.([\\w\\.]+)\\s*}}`, 'g');
+    //       console.log('clone', clone.innerHTML);
+    //       clone.innerHTML = clone.innerHTML.replace(itemRegex, (match, prop) => {
+    //         // Si es solo el item (sin propiedad), retornamos el item completo
+    //         if (match.includes(binding.itemName) && !prop) {
+    //           return `<span data-bind="${binding.arrayPath}[${index}]"></span>`;
+    //         }
+    //         // Si es una propiedad del item
+    //         return `<span data-bind="${binding.arrayPath}[${index}].${prop}"></span>`;
+    //       });
+
+    //       binding.anchor.parentNode.insertBefore(clone, binding.anchor.nextSibling);
+    //       binding.elements.push(clone);
+    //     });
+
+    //     // Actualizar los bindings después de crear nuevos elementos
+    //     this.#setupAndCacheBindings();
+    //   }
+    // }
+
+    // for (const binding of this.#textBindings) {
+    //   const value = this.#getNestedValue(this.$state, binding.key);
+    //   binding.node.textContent = value ?? '';
+    // }
   }
 }

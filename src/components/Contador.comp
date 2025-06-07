@@ -2,9 +2,19 @@
   // Simplemente exportamos las variables que queremos que sean reactivas.
   // El valor inicial se usa para el estado por defecto.
   this.$state.contador = 0;
-  this.$state.historial = [];
+  this.$state.historial = [{
+    valor: 0,
+    timestamp: new Date().toLocaleTimeString()
+  },
+  {
+    valor: 1,
+    timestamp: new Date().toLocaleTimeString()
+  },
+  
+];
   let mensaje = "Observa cómo cambia el mensaje según el valor del contador: ";
   let interval;
+  
 
   const formatMessage = () => {
     return `${mensaje} ${this.$state.contador}`
@@ -15,10 +25,10 @@
     interval = setInterval(() => {
       this.$state.contador++;
       // Guardamos el valor en el historial
-      this.$state.historial = [...this.$state.historial, {
-        valor: this.$state.contador,
-        timestamp: new Date().toLocaleTimeString()
-      }].slice(-5); // Mantenemos solo los últimos 5 valores
+      // this.$state.historial = [...this.$state.historial, {
+      //   valor: this.$state.contador,
+      //   timestamp: new Date().toLocaleTimeString()
+      // }].slice(-5); // Mantenemos solo los últimos 5 valores
       console.log('MENSAJE', formatMessage());
     }, 1000);
   }
@@ -36,7 +46,7 @@
     <p>El valor actual es: <strong class="valor">{{ contador }}</strong></p>
     
     <div :if={contador > 5}>
-      <p class="alerta">¡El contador es mayor que 5! {{ contador }}</p>
+      <p class="alerta">¡El contador es mayor que 5! <span>{{ contador }}</span></p>
     </div>
     <div :else>
       <p class="normal">El contador es 5 o menor</p>
