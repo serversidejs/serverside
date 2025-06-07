@@ -13,10 +13,8 @@ export class Api {
   private routes: ApiHandler[] = [];
   private apiPath: string;
 
-  constructor() {
-    const __filename = fileURLToPath(import.meta.url);
-    const __dirname = dirname(__filename);
-    this.apiPath = join(__dirname, 'api');
+  constructor(path: string) {
+    this.apiPath = path;
     this._loadRoutes();
   }
 

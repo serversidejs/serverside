@@ -16,10 +16,8 @@ export class Router {
   private routes: Route[] = [];
   private routesPath: string;
 
-  constructor() {
-    const __filename = fileURLToPath(import.meta.url);
-    const __dirname = dirname(__filename);
-    this.routesPath = join(__dirname, 'routes');
+  constructor(path: string) {
+    this.routesPath = path;
     this._loadRoutes();
   }
 
