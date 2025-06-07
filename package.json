@@ -1,19 +1,15 @@
 {
-  "name": "component-framework",
-  "module": "index.ts",
+  "name": "kettu-ssr",
+  "version": "1.0.0",
+  "description": "A simple SSR framework with Express",
+  "main": "src/index.js",
   "type": "module",
   "scripts": {
-    "dev": "bun run dev-server.ts",
-    "build": "bun build.js"
-  },
-  "devDependencies": {
-    "@types/bun": "latest"
-  },
-  "peerDependencies": {
-    "typescript": "^5.0.0"
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
   },
   "dependencies": {
-    "@types/chokidar": "^2.1.7",
-    "chokidar": "^4.0.3"
+    "express": "^4.18.2",
+    "ejs": "^3.1.9"
   }
 }
