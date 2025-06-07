@@ -262,4 +262,4 @@ class Templatron {
     }
 }
 
-export default Templatron;
+export { Templatron };

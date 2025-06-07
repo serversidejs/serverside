@@ -49,6 +49,7 @@ router.get('/', async (req) => {
         name: 'Carlos',
         email: 'carlos@example.com',
         isAdmin: true,
+        role: 'admin',
         permissions: {
             canEdit: true
         }

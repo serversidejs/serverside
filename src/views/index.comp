@@ -1,3 +1,35 @@
+<script side="server">
+// Procesar las tareas para añadir información adicional
+const processedTasks = tasks.map(task => ({
+    ...task,
+    priority: task.priority.toUpperCase(),
+    dueDate: task.dueDate ? new Date(task.dueDate).toLocaleDateString() : null
+}));
+
+// Filtrar notificaciones no leídas
+const unreadNotifications = notifications.filter(n => !n.read);
+
+// Retornar los datos procesados
+return {
+    tasks: processedTasks,
+    notifications: unreadNotifications,
+    // Podemos modificar o añadir datos al usuario
+    user: {
+        ...user,
+        isAdmin: user.role === 'admin',
+        permissions: {
+            canEdit: user.role === 'admin' || user.role === 'editor'
+        }
+    }
+};
+</script>
+
+<script>
+    console.log('Hola desde el script');
+    const user = JSON.parse('{@json user}');
+    console.log('USER', user);
+</script>
+
 <h1>Bienvenido, {user.name}!</h1>
 
 {#if user.isAdmin}
@@ -45,15 +77,4 @@
     <p>No hay notificaciones nuevas.</p>
 {/if}
 
-<p>Contacto: {user.email}</p>
-<p>Número literal: {123}</p>
-<p>Booleano literal: {true}</p>
-
-
-<script>
-    console.log('Hola desde el script');
-
-    let user = JSON.parse('{@json user}');
-    
-    console.log('USER', user);
-</script>
+<p>Contacto: {user.email}</p> 
