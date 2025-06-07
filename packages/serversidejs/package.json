@@ -1,0 +1,39 @@
+{
+  "name": "@serversidejs/serverside",
+  "version": "0.2.0",
+  "description": "A lightweight component-based framework for server-side rendering",
+  "keywords": [
+    "ssr",
+    "framework",
+    "components",
+    "server-side-rendering"
+  ],
+  "repository": {
+		"type": "git",
+		"url": "https://github.com/serversidejs/serverside",
+		"directory": "packages/serversidejs"
+	},
+  "license": "MIT",
+  "homepage": "https://github.com/serversidejs/serverside#readme",
+  "module": "src/index.ts",
+  "type": "module",
+  "scripts": {
+    "dev": "bun --watch demo/index.ts",
+    "test": "bun test"
+  },
+  
+  
+  
+  "dependencies": {
+    "bun-types": "latest"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "peerDependencies": {
+    "bun": ">=1.0.0"
+  },
+  "engines": {
+    "bun": ">=1.0.0"
+  }
+}

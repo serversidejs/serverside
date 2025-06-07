@@ -1,31 +1,27 @@
 {
-  "name": "serversidejs",
-  "version": "0.2.0",
-  "description": "A lightweight component-based framework for server-side rendering",
-  "module": "src/index.ts",
-  "type": "module",
+  "name": "serverside-monorepo",
+  "version": "1.0.0",
+  "description": "monorepo for @serversidejs/serverside and friends",
+  "main": "index.js",
   "scripts": {
-    "dev": "bun --watch demo/index.ts",
-    "test": "bun test"
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/serversidejs/serverside.git"
   },
   "keywords": [
+    "serverside",
     "ssr",
-    "framework",
-    "components",
     "server-side-rendering"
   ],
-  "author": "carlos@kettu.studio",
+  "author": "Carlos Lopez <carlos@kettu.studio>",
   "license": "MIT",
-  "dependencies": {
-    "bun-types": "latest"
+  "bugs": {
+    "url": "https://github.com/serversidejs/serverside/issues"
   },
-  "devDependencies": {
-    "typescript": "^5.0.0"
-  },
-  "peerDependencies": {
+  "homepage": "https://github.com/serversidejs/serverside#readme",
+  "engines": {
     "bun": ">=1.0.0"
-  },
-  "publishConfig": {
-    "access": "public"
   }
 }
