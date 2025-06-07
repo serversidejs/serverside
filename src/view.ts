@@ -55,8 +55,8 @@ export class View {
       const currentDir = dirname(currentPath);
       
       // Construir las rutas de los layouts
-      const layoutPath = join(this.viewsPath, currentDir, 'layout.comp');
-      const resetLayoutPath = join(this.viewsPath, currentDir, 'layout@.comp');
+      const layoutPath = join(this.viewsPath, currentDir, '_layout.comp');
+      const resetLayoutPath = join(this.viewsPath, currentDir, '_layout@.comp');
       
       // Primero verificar si existe un layout que no extiende
       if (existsSync(resetLayoutPath)) {

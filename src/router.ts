@@ -37,7 +37,7 @@ export class Router {
       if (stat.isDirectory()) {
         // Recursivamente escanear subdirectorios
         this._scanDirectory(fullPath, join(basePath, entry));
-      } else if (entry.endsWith('.comp')) {
+      } else if (entry.endsWith('.comp') && !entry.startsWith('_')) {
         // Convertir la ruta del archivo a una ruta URL
         const relativePath = relative(this.routesPath, fullPath);
         const { routePath, pattern, params } = this._filePathToRoutePath(relativePath);
@@ -81,7 +81,7 @@ export class Router {
       routePath = '/' + routePath;
     }
 
-    if(routePath.endsWith('/')) {
+    if(routePath.endsWith('/') && routePath !== '/') {
       routePath = routePath.slice(0, -1);
     }
 
