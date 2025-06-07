@@ -1,12 +1,31 @@
 {
-  "name": "kettu-ssr",
-  "version": "1.0.0",
-  "description": "A simple SSR framework with Bun",
+  "name": "serversidejs",
+  "version": "0.2.0",
+  "description": "A lightweight component-based framework for server-side rendering",
   "module": "src/index.ts",
   "type": "module",
   "scripts": {
-    "dev": "bun --watch demo/index.ts"
+    "dev": "bun --watch demo/index.ts",
+    "test": "bun test"
   },
+  "keywords": [
+    "ssr",
+    "framework",
+    "components",
+    "server-side-rendering"
+  ],
+  "author": "carlos@kettu.studio",
+  "license": "MIT",
   "dependencies": {
+    "bun-types": "latest"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "peerDependencies": {
+    "bun": ">=1.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

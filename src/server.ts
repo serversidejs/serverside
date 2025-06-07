@@ -4,7 +4,7 @@ import { statSync, readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
-export class ComponentFramework {
+export class ServerSide {
   private router: Router;
   private api: Api;
   private port: number;
