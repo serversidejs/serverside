@@ -1,0 +1,96 @@
+<script side="server">
+
+    return {
+        user: {
+            name: 'Carlos',
+            email: 'carlos@example.com',
+            isAdmin: true,
+            role: 'admin',
+            permissions: {
+                canEdit: true
+            }
+        },
+        tasks: [
+            {
+                description: 'Preparar presentación',
+                priority: 'alta',
+                completed: false,
+                dueDate: '2025-06-15',
+                subTasks: [
+                    { name: 'Investigar tema', done: true },
+                    { name: 'Diseñar diapositivas', done: false }
+                ]
+            },
+            {
+                description: 'Revisar informe',
+                priority: 'media',
+                completed: true,
+                subTasks: null // Demostrar que no hay problema si no existe
+            },
+            {
+                description: 'Comprar víveres',
+                priority: 'baja',
+                completed: false,
+                dueDate: '2025-06-08'
+            }
+        ],
+        notifications: ['Nueva actualización disponible', 'Tu suscripción caduca pronto']
+        // notifications: [] // Prueba con array vacío para el 'else'
+    };
+
+</script>
+
+<script>
+    console.log('Hola desde el script');
+    // const user = JSON.parse('{@json user}');
+    // console.log('USER', user);
+</script>
+
+<h1>Bienvenido, {user.name}!</h1>
+
+{#if user.isAdmin}
+    <p>¡Eres un administrador!</p>
+    {#if user.permissions.canEdit}
+        <button>Editar Contenido</button>
+    {:else}
+        <p>Solo puedes ver.</p>
+    {/if}
+{:else}
+    <p>No eres un administrador.</p>
+{/if}
+
+<h2>Mis Tareas:</h2>
+{#each tasks as task}
+    <div style="border: 1px solid #ccc; margin: 10px; padding: 5px;">
+        <h3>{task.description}</h3>
+        <p>Prioridad: {task.priority}</p>
+        {#if task.completed}
+            <span style="color: green;">Completada!</span>
+        {:else}
+            <span style="color: orange;">Pendiente.</span>
+            {#if task.dueDate}
+                <p>Fecha límite: {task.dueDate}</p>
+            {/if}
+        {/if}
+
+        {#if task.subTasks}
+            <h4>Subtareas:</h4>
+            {#each task.subTasks as sub}
+                <p>- {sub.name} {#if sub.done}(Hecha){:else}(Pendiente){/if}</p>
+            {/each}
+        {/if}
+    </div>
+{/each}
+
+{#if notifications.length}
+    <h3>Notificaciones ({notifications.length}):</h3>
+    <ul>
+    {#each notifications as notification}
+        <li>{notification}</li>
+    {/each}
+    </ul>
+{:else}
+    <p>No hay notificaciones nuevas.</p>
+{/if}
+
+<p>Contacto: {user.email}</p> 

@@ -1,6 +1,6 @@
 {
   "name": "@serversidejs/serverside",
-  "version": "0.2.0",
+  "version": "0.1.0",
   "description": "A lightweight component-based framework for server-side rendering",
   "keywords": [
     "ssr",
