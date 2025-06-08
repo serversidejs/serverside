@@ -3,6 +3,7 @@ import { Api } from './api.js';
 import { statSync, readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { useLogger } from './logger.js';
 
 export class ServerSide {
   private router: Router;
@@ -99,7 +100,9 @@ export class ServerSide {
   async addMiddlewares(middlewares: any[]) {
     this.middlewares = middlewares;
   }
-  
+  async useLogger(logger: any) {
+    useLogger(logger);
+  }
 
   async serve() {
     const server = Bun.serve({
