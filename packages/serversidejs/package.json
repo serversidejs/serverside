@@ -9,10 +9,10 @@
     "server-side-rendering"
   ],
   "repository": {
-		"type": "git",
-		"url": "https://github.com/serversidejs/serverside",
-		"directory": "packages/serversidejs"
-	},
+    "type": "git",
+    "url": "https://github.com/serversidejs/serverside",
+    "directory": "packages/serversidejs"
+  },
   "license": "MIT",
   "homepage": "https://github.com/serversidejs/serverside#readme",
   "module": "src/index.ts",
@@ -21,13 +21,12 @@
     "dev": "bun --watch demo/index.ts",
     "test": "bun test"
   },
-  
-  
-  
   "dependencies": {
     "bun-types": "latest"
   },
   "devDependencies": {
+    "@types/bun": "^1.2.15",
+    "prettier": "3.5.3",
     "typescript": "^5.0.0"
   },
   "peerDependencies": {
