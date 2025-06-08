@@ -11,6 +11,8 @@ export class ServerSide {
   private staticDir: string;
   private baseDir: string;
 
+  private middlewares: any[] = [];
+
   constructor({
     port = 3000,
     paths = {
@@ -81,6 +83,11 @@ export class ServerSide {
     const staticResponse = await this.serveStatic(path);
     if (staticResponse) return staticResponse;
 
+    // Ejecutar Global Middlewares
+    for (const middleware of this.middlewares) {
+      await middleware(req);
+    }
+
     // Si la ruta comienza con /api, usar el manejador de API
     if (path.startsWith('/api')) {
       return await this.api.handle(req);
@@ -89,6 +96,10 @@ export class ServerSide {
     // Si no, usar el router normal
     return await this.router.handle(req);
   }
+  async addMiddlewares(middlewares: any[]) {
+    this.middlewares = middlewares;
+  }
+  
 
   async serve() {
     const server = Bun.serve({

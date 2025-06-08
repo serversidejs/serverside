@@ -34,5 +34,16 @@
   },
   "engines": {
     "bun": ">=1.0.0"
+  },
+  "exports": {
+    ".": {
+      "import": "./src/index.ts"
+    },
+    "./middlewares": {
+      "import": "./src/middlewares/index.ts"
+    },
+    "./http": {
+      "import": "./src/http.ts"
+    }
   }
 }
