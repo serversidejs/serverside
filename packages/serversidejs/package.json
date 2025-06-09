@@ -47,6 +47,9 @@
     },
     "./http": {
       "import": "./src/http.ts"
+    },
+    "./hooks": {
+      "import": "./src/hooks/index.ts"
     }
   }
 }

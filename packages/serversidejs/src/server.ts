@@ -1,24 +1,26 @@
 import { Router } from './router.js';
 import { Api } from './api.js';
 import { statSync, readFileSync } from 'fs';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
-import { useLogger } from './logger.js';
-import { handleHooks } from './hooks';
-// import { Middleware, MiddlewaresManager } from './middlewares-manager.js';
+import { join } from 'path';
+import { logger, useLogger } from './logger.js';
+import { FetchManager } from './hooks/fetch.js';
 
-export interface Middleware {
-  (req: Request, res: Response, next: any): Promise<Response | null> | Response | null;
+export interface Hook {
+  ({req, resolve}: {req: Request, resolve: (req: Request) => Promise<Response | null>}): Promise<Response | null>;
 }
+
+export interface FetchHook {
+  (req: Request): Promise<Response>;
+}
+
 export class ServerSide {
   private router: Router;
   private api: Api;
   private port: number;
   private staticDir: string;
   private baseDir: string;
-
-
-
+  private hook: Hook = ({req, resolve}) => resolve(req);
+  private fetchHook: FetchHook = (req) => fetch(req);
   constructor({
     port = 3000,
     paths = {
@@ -81,43 +83,42 @@ export class ServerSide {
     }
   }
 
-  private async handleFetch(req: Request): Promise<Response> {
+  private async handle(req: Request): Promise<Response> {
     const url = new URL(req.url);
     const path = url.pathname;
 
     // Intentar servir archivos estáticos primero
     const staticResponse = await this.serveStatic(path);
     if (staticResponse) {
-      const hookedResponse = await handleHooks(req, staticResponse);
-      return hookedResponse || new Response(null, { status: 500 });
+      // const response = await this.hook(req, () => this.serveStatic(path));
+      return staticResponse;
     }
 
-    let response: Response | null = null;
+    // Determinar el manejador basado en la ruta
+    const resolve = path.startsWith('/api') 
+      ? this.api.handle.bind(this.api)
+      : this.router.handle.bind(this.router);
 
-    if (path.startsWith('/api')) {
-      response = await this.api.handle(req);
-    } else {
-      response = await this.router.handle(req);
-    }
-
-    // Si no hay respuesta, devolver 404
-    if (!response) {
-      response = new Response(null, { status: 404 });
-    }
-
-    // Aplicar hooks a la respuesta
-    const hookedResponse = await handleHooks(req, response);
-    return hookedResponse || response;
+    const response = await this.hook({req, resolve});
+    return response || new Response(JSON.stringify({message: 'Not Found'}), { status: 404, headers: { 'Content-Type': 'application/json' } });
   }
 
   async useLogger(logger: any) {
     useLogger(logger);
   }
 
+  async useHook(hook: Hook) {
+    this.hook = hook;
+  }
+  async useFetchHook(hook: FetchHook) {
+    const fetchManager = FetchManager.getInstance();
+    fetchManager.setFetchHook(hook);
+  }
+
   async serve() {
     const server = Bun.serve({
       port: this.port,
-      fetch: this.handleFetch.bind(this)
+      fetch: this.handle.bind(this)
     });
 
     console.log(`🚀 Server running at http://localhost:${this.port}`);
