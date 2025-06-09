@@ -4,7 +4,11 @@ import { statSync, readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { useLogger } from './logger.js';
+// import { Middleware, MiddlewaresManager } from './middlewares-manager.js';
 
+export interface Middleware {
+  (req: Request, res: Response, next: any): Promise<Response | null> | Response | null;
+}
 export class ServerSide {
   private router: Router;
   private api: Api;
@@ -12,7 +16,6 @@ export class ServerSide {
   private staticDir: string;
   private baseDir: string;
 
-  private middlewares: any[] = [];
 
   constructor({
     port = 3000,
@@ -76,7 +79,7 @@ export class ServerSide {
     }
   }
 
-  async handleFetch(req: Request) {
+  private async handleFetch(req: Request) {
     const url = new URL(req.url);
     const path = url.pathname;
 
@@ -84,22 +87,14 @@ export class ServerSide {
     const staticResponse = await this.serveStatic(path);
     if (staticResponse) return staticResponse;
 
-    // Ejecutar Global Middlewares
-    for (const middleware of this.middlewares) {
-      await middleware(req);
-    }
-
-    // Si la ruta comienza con /api, usar el manejador de API
     if (path.startsWith('/api')) {
       return await this.api.handle(req);
     }
+    return await this.router.handle(req)
 
-    // Si no, usar el router normal
-    return await this.router.handle(req);
+    
   }
-  async addMiddlewares(middlewares: any[]) {
-    this.middlewares = middlewares;
-  }
+
   async useLogger(logger: any) {
     useLogger(logger);
   }

@@ -1,6 +1,5 @@
 import { readdirSync, statSync } from 'fs';
-import { join, relative, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { join, relative } from 'path';
 import { View } from './view';
 
 type RouteHandler = (req: Request) => Promise<Response> | Response;

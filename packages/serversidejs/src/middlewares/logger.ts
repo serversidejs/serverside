@@ -1,7 +1,7 @@
 import { logger } from '../logger.js';
 
 function loggerMiddleware() {
-  return async (request: Request, next: any) => {
+  return async (request: Request, res: Response, next: any) => {
     const start = Date.now();
     const method = request.method;
     const url = new URL(request.url);
@@ -22,19 +22,19 @@ function loggerMiddleware() {
     });
 
     try {
-      const response = await next();
-      const duration = Date.now() - start;
+      // const response = await next();
+      // const duration = Date.now() - start;
 
-      // Log response
-      logger.info({
-        type: 'response',
-        method,
-        path,
-        status: response.status,
-        duration: `${duration}ms`
-      });
+      // // Log response
+      // logger.info({
+      //   type: 'response',
+      //   method,
+      //   path,
+      //   status: response?.status || 200,
+      //   duration: `${duration}ms`
+      // });
 
-      return response;
+      // return response;
     } catch (error) {
       const duration = Date.now() - start;
 
