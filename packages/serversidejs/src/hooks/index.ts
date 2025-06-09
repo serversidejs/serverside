@@ -1,3 +1,3 @@
-import { fetch } from './fetch';
+import { fetchHandler, type FetchHook } from './fetch';
 
-export { fetch };
+export { fetchHandler as fetch, type FetchHook };
