@@ -4,6 +4,7 @@ import { statSync, readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { useLogger } from './logger.js';
+import { handleHooks } from './hooks';
 // import { Middleware, MiddlewaresManager } from './middlewares-manager.js';
 
 export interface Middleware {
@@ -15,6 +16,7 @@ export class ServerSide {
   private port: number;
   private staticDir: string;
   private baseDir: string;
+
 
 
   constructor({
@@ -79,20 +81,33 @@ export class ServerSide {
     }
   }
 
-  private async handleFetch(req: Request) {
+  private async handleFetch(req: Request): Promise<Response> {
     const url = new URL(req.url);
     const path = url.pathname;
 
     // Intentar servir archivos estáticos primero
     const staticResponse = await this.serveStatic(path);
-    if (staticResponse) return staticResponse;
+    if (staticResponse) {
+      const hookedResponse = await handleHooks(req, staticResponse);
+      return hookedResponse || new Response(null, { status: 500 });
+    }
+
+    let response: Response | null = null;
 
     if (path.startsWith('/api')) {
-      return await this.api.handle(req);
+      response = await this.api.handle(req);
+    } else {
+      response = await this.router.handle(req);
     }
-    return await this.router.handle(req)
 
-    
+    // Si no hay respuesta, devolver 404
+    if (!response) {
+      response = new Response(null, { status: 404 });
+    }
+
+    // Aplicar hooks a la respuesta
+    const hookedResponse = await handleHooks(req, response);
+    return hookedResponse || response;
   }
 
   async useLogger(logger: any) {
