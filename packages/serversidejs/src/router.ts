@@ -1,6 +1,7 @@
 import { readdirSync, statSync } from 'fs';
 import { join, relative } from 'path';
 import { View } from './view';
+import { logger } from './logger';
 
 type RouteHandler = (req: Request) => Promise<Response> | Response;
 
@@ -23,6 +24,7 @@ export class Router {
 
   private _loadRoutes() {
     this._scanDirectory(this.routesPath);
+    logger.info('Web Routes loaded completed')
   }
 
   private _scanDirectory(dir: string, basePath: string = '') {
@@ -40,7 +42,7 @@ export class Router {
         const relativePath = relative(this.routesPath, fullPath);
         const { routePath, pattern, params } = this._filePathToRoutePath(relativePath);
         
-        console.log('ROUTE PATH', routePath, relativePath, pattern, params);
+        logger.info(`Route Loaded ${routePath} from /routes/${relativePath}`);
         
         // Registrar la ruta
         this.routes.push({

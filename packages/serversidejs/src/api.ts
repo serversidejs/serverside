@@ -1,5 +1,6 @@
 import { readdirSync, statSync } from 'fs';
 import { join, relative } from 'path';
+import { logger } from './logger';
 
 interface ApiHandler {
   path: string;
@@ -19,6 +20,7 @@ export class Api {
 
   private _loadRoutes() {
     this._scanDirectory(this.apiPath);
+    logger.info('API Routes loaded completed')
   }
 
   private _scanDirectory(dir: string, basePath: string = '') {
@@ -36,8 +38,7 @@ export class Api {
         const relativePath = relative(this.apiPath, fullPath);
         const { routePath, pattern, params } = this._filePathToRoutePath(relativePath);
         
-        console.log('API ROUTE', routePath, relativePath, pattern, params);
-        
+        logger.info(`Route Loaded /api${routePath} from /api/${relativePath}`);
         // Registrar la ruta
         this.routes.push({
           path: routePath,
@@ -59,6 +60,7 @@ export class Api {
             return await this._handleApiRequest(apiName, req, routeParams);
           }
         });
+        
       }
     }
   }
@@ -92,18 +94,25 @@ export class Api {
         });
       }
 
+      const query = new URL(req.url).searchParams;
       // Preparar los datos para el handler
       const data = {
         params,
         method: req.method,
         headers: Object.fromEntries(req.headers.entries()),
-        query: Object.fromEntries(new URL(req.url).searchParams)
+        query: Object.fromEntries(query)
       };
 
-    
+      
       // Ejecutar el handler
       const result = await handler.call(apiInstance, data);
-
+      
+      let log = `[API] ${method} /api/${apiName}${query.toString() ? `?${query.toString()}` : ''} - ${result.status}`;
+      if(result.status.toString().startsWith('2')) {
+        logger.info(log);
+      } else {
+        logger.error(log);
+      }
       return result;
 
     } catch (error) {

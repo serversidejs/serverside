@@ -10,7 +10,7 @@ export interface Hook {
 }
 
 export interface FetchHook {
-  (req: Request): Promise<Response>;
+  ({request, fetch}: {request: Request, fetch: any}): Promise<Response>;
 }
 
 export class ServerSide {
